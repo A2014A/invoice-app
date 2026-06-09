@@ -1,3 +1,4 @@
+
 from flask import Flask, render_template, request, send_file, jsonify
 from docx import Document
 from docx.shared import Pt, RGBColor, Cm
@@ -10,7 +11,7 @@ app = Flask(__name__)
  
 OWNER_NAME = "יהודה קורץ"
 OWNER_TAX  = "027394865"
-DB_PATH    = "data.db"
+DB_PATH    = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data.db")
  
 # ===== מסד נתונים =====
  
