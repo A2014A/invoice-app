@@ -364,3 +364,15 @@ def client_names():
  
 if __name__ == '__main__':
     app.run(debug=True)
+ 
+@app.route('/reset_data', methods=['POST'])
+def reset_data():
+    conn = get_db()
+    conn.execute("DELETE FROM documents")
+    conn.execute("UPDATE counters SET next_num=2600166 WHERE doc_type='חשבונית עסקה'")
+    conn.execute("UPDATE counters SET next_num=2601166 WHERE doc_type='קבלה'")
+    conn.execute("UPDATE counters SET next_num=26002166 WHERE doc_type='חשבונית עסקה + קבלה'")
+    conn.commit()
+    conn.close()
+    return jsonify({'ok': True, 'message': 'כל הנתונים אופסו'})
+ 
