@@ -1,248 +1,208 @@
+
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>מערכת חשבוניות — יהודה קורץ</title>
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#1E3A5F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="חשבוניות">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, sans-serif; background: #F1F5F9; color: #1E3A5F; direction: rtl; }
 
-  body {
-    font-family: Arial, sans-serif;
-    background: #F1F5F9;
-    color: #1E3A5F;
-    direction: rtl;
-  }
+header {
+  background: linear-gradient(135deg, #1E3A5F, #2563EB);
+  color: white; padding: 16px 24px; text-align: center;
+}
+header h1 { font-size: 1.5rem; font-weight: 700; }
+header p  { font-size: 0.85rem; opacity: 0.85; margin-top: 3px; }
 
-  header {
-    background: linear-gradient(135deg, #1E3A5F, #2563EB);
-    color: white;
-    padding: 20px 24px;
-    text-align: center;
-  }
-  header h1 { font-size: 1.6rem; font-weight: 700; }
-  header p  { font-size: 0.9rem; opacity: 0.85; margin-top: 4px; }
+/* טאבים */
+.tabs { display: flex; background: white; border-bottom: 2px solid #DBEAFE; }
+.tab {
+  flex: 1; padding: 14px 8px; text-align: center; cursor: pointer;
+  font-weight: 600; font-size: 0.9rem; color: #6B7280;
+  border-bottom: 3px solid transparent; margin-bottom: -2px;
+  transition: all 0.2s;
+}
+.tab.active { color: #2563EB; border-bottom-color: #2563EB; background: #EFF6FF; }
+.tab:hover:not(.active) { background: #F8FAFC; color: #374151; }
 
-  .container {
-    max-width: 700px;
-    margin: 24px auto;
-    padding: 0 16px;
-  }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
 
-  .card {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-    padding: 24px;
-    margin-bottom: 20px;
-  }
+.container { max-width: 760px; margin: 20px auto; padding: 0 16px; }
 
-  .card h2 {
-    font-size: 1.1rem;
-    color: #2563EB;
-    border-bottom: 2px solid #DBEAFE;
-    padding-bottom: 10px;
-    margin-bottom: 18px;
-  }
+.card {
+  background: white; border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  padding: 22px; margin-bottom: 18px;
+}
+.card h2 {
+  font-size: 1rem; color: #2563EB;
+  border-bottom: 2px solid #DBEAFE;
+  padding-bottom: 10px; margin-bottom: 16px;
+}
 
-  .form-group {
-    margin-bottom: 14px;
-  }
+.form-group { margin-bottom: 13px; }
+label { display: block; font-size: 0.82rem; font-weight: 600; color: #374151; margin-bottom: 4px; }
+input, select, textarea {
+  width: 100%; padding: 9px 11px;
+  border: 1.5px solid #D1D5DB; border-radius: 8px;
+  font-size: 0.92rem; font-family: Arial, sans-serif;
+  direction: rtl; background: #FAFAFA; transition: border-color 0.2s;
+}
+input:focus, select:focus { outline: none; border-color: #2563EB; background: white; }
 
-  label {
-    display: block;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #374151;
-    margin-bottom: 5px;
-  }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 13px; }
 
-  input, select, textarea {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1.5px solid #D1D5DB;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    font-family: Arial, sans-serif;
-    direction: rtl;
-    transition: border-color 0.2s;
-    background: #FAFAFA;
-  }
+.type-selector { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 0; }
+.type-btn {
+  padding: 13px 6px; border: 2px solid #D1D5DB; border-radius: 10px;
+  background: white; cursor: pointer; text-align: center;
+  font-size: 0.78rem; font-weight: 600; transition: all 0.2s; color: #374151;
+}
+.type-btn .icon { font-size: 1.4rem; display: block; margin-bottom: 4px; }
+.type-btn.invoice.active  { border-color: #2563EB; background: #EFF6FF; color: #2563EB; }
+.type-btn.receipt.active  { border-color: #16A34A; background: #F0FDF4; color: #16A34A; }
+.type-btn.combined.active { border-color: #7C3AED; background: #F5F3FF; color: #7C3AED; }
+.type-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
 
-  input:focus, select:focus {
-    outline: none;
-    border-color: #2563EB;
-    background: white;
-  }
+.amounts-section { background: #F8FAFC; border-radius: 10px; padding: 16px; }
+.inv-fields { display: none; }
+.rec-fields { display: none; }
+.show-inv .inv-fields { display: block; }
+.show-rec .rec-fields { display: block; }
 
-  .row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-  }
+.section-title { font-size: 0.88rem; font-weight: 700; margin-bottom: 12px; margin-top: 4px; }
+.inv-title { color: #2563EB; }
+.rec-title { color: #16A34A; }
 
-  .type-selector {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 18px;
-  }
+.calc-display {
+  background: #EDE9FE; border: 1px solid #C4B5FD;
+  border-radius: 8px; padding: 9px 13px;
+  font-size: 0.83rem; color: #7C3AED; margin-top: 8px; font-weight: 600;
+}
 
-  .type-btn {
-    padding: 12px 8px;
-    border: 2px solid #D1D5DB;
-    border-radius: 10px;
-    background: white;
-    cursor: pointer;
-    text-align: center;
-    font-size: 0.8rem;
-    font-weight: 600;
-    transition: all 0.2s;
-    color: #374151;
-  }
+.btn-generate {
+  width: 100%; padding: 15px;
+  background: linear-gradient(135deg, #2563EB, #1E40AF);
+  color: white; border: none; border-radius: 10px;
+  font-size: 1.05rem; font-weight: 700; cursor: pointer;
+  font-family: Arial, sans-serif; transition: all 0.2s;
+}
+.btn-generate:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37,99,235,0.4); }
+.btn-generate:disabled { background: #9CA3AF; cursor: not-allowed; transform: none; }
+.btn-generate.receipt-btn { background: linear-gradient(135deg, #16A34A, #15803D); }
+.btn-generate.combined-btn { background: linear-gradient(135deg, #7C3AED, #6D28D9); }
 
-  .type-btn.invoice.active  { border-color: #2563EB; background: #EFF6FF; color: #2563EB; }
-  .type-btn.receipt.active  { border-color: #16A34A; background: #F0FDF4; color: #16A34A; }
-  .type-btn.combined.active { border-color: #7C3AED; background: #F5F3FF; color: #7C3AED; }
-  .type-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.client-select-row { display: flex; gap: 8px; align-items: flex-end; }
+.client-select-row select { flex: 1; }
+.btn-new-client {
+  padding: 9px 13px; background: #EFF6FF;
+  border: 1.5px solid #2563EB; border-radius: 8px;
+  color: #2563EB; font-weight: 600; cursor: pointer;
+  white-space: nowrap; font-size: 0.82rem;
+}
 
-  .type-btn .icon { font-size: 1.5rem; display: block; margin-bottom: 4px; }
+/* מודל */
+.modal {
+  display: none; position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+  z-index: 1000; justify-content: center; align-items: center;
+}
+.modal.open { display: flex; }
+.modal-box {
+  background: white; border-radius: 16px; padding: 24px;
+  width: 90%; max-width: 460px; direction: rtl;
+}
+.modal-box h3 { color: #2563EB; margin-bottom: 16px; }
+.modal-actions { display: flex; gap: 10px; margin-top: 16px; }
+.btn-save { flex:1; padding:12px; background:#2563EB; color:white; border:none; border-radius:8px; font-size:1rem; font-weight:600; cursor:pointer; }
+.btn-cancel { padding:12px 16px; background:#F3F4F6; border:none; border-radius:8px; cursor:pointer; font-size:1rem; }
 
-  .amounts-section {
-    background: #F8FAFC;
-    border-radius: 10px;
-    padding: 16px;
-    margin-top: 10px;
-  }
+/* Toast */
+.toast {
+  position: fixed; bottom: 24px; right: 50%;
+  transform: translateX(50%); background: #1E3A5F;
+  color: white; padding: 12px 24px; border-radius: 50px;
+  font-size: 0.92rem; opacity: 0; transition: opacity 0.3s; z-index: 2000;
+}
+.toast.show { opacity: 1; }
+.toast.success { background: #16A34A; }
+.toast.error   { background: #DC2626; }
 
-  .amounts-section h3 {
-    font-size: 0.9rem;
-    color: #374151;
-    margin-bottom: 12px;
-  }
+.spinner {
+  display: inline-block; width: 16px; height: 16px;
+  border: 3px solid rgba(255,255,255,0.3); border-top-color: white;
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+  vertical-align: middle; margin-right: 8px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 
-  .inv-fields  { display: none; }
-  .rec-fields  { display: none; }
+/* היסטוריה */
+.filter-bar { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; }
+.filter-bar select, .filter-bar input { flex: 1; }
+.btn-filter {
+  padding: 9px 16px; background: #2563EB; color: white;
+  border: none; border-radius: 8px; cursor: pointer; font-weight: 600; white-space: nowrap;
+}
 
-  .show-inv .inv-fields { display: block; }
-  .show-rec .rec-fields { display: block; }
+.history-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.history-table th {
+  background: #1E3A5F; color: white; padding: 10px 8px;
+  text-align: right; font-weight: 600;
+}
+.history-table td { padding: 9px 8px; border-bottom: 1px solid #E5E7EB; }
+.history-table tr:hover td { background: #F8FAFC; }
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 20px;
+  font-size: 0.75rem; font-weight: 600;
+}
+.badge-inv  { background: #DBEAFE; color: #2563EB; }
+.badge-rec  { background: #DCFCE7; color: #16A34A; }
+.badge-both { background: #EDE9FE; color: #7C3AED; }
+.empty-msg { text-align: center; color: #9CA3AF; padding: 40px; font-size: 0.95rem; }
 
-  .nik-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 10px;
-  }
+/* כרטסת */
+.ledger-header {
+  background: linear-gradient(135deg, #1E3A5F, #2563EB);
+  color: white; border-radius: 12px; padding: 20px; margin-bottom: 16px;
+}
+.ledger-header h3 { font-size: 1.2rem; margin-bottom: 12px; }
+.ledger-summary { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; }
+.summary-box { background: rgba(255,255,255,0.15); border-radius: 10px; padding: 12px; text-align: center; }
+.summary-box .label { font-size: 0.78rem; opacity: 0.85; margin-bottom: 4px; }
+.summary-box .amount { font-size: 1.2rem; font-weight: 700; }
+.summary-box.balance-box { background: rgba(255,255,255,0.25); }
 
-  .calc-display {
-    background: #EDE9FE;
-    border: 1px solid #C4B5FD;
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-size: 0.85rem;
-    color: #7C3AED;
-    margin-top: 8px;
-    font-weight: 600;
-  }
+.ledger-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+.ledger-table th {
+  background: #374151; color: white; padding: 9px 7px; text-align: right;
+}
+.ledger-table td { padding: 8px 7px; border-bottom: 1px solid #E5E7EB; }
+.ledger-table tr:hover td { background: #F8FAFC; }
+.debit-cell  { color: #DC2626; font-weight: 600; }
+.credit-cell { color: #16A34A; font-weight: 600; }
+.balance-pos { color: #DC2626; font-weight: 700; }
+.balance-neg { color: #16A34A; font-weight: 700; }
+.balance-zero{ color: #6B7280; font-weight: 600; }
 
-  .btn-generate {
-    width: 100%;
-    padding: 16px;
-    background: linear-gradient(135deg, #2563EB, #1E40AF);
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-size: 1.1rem;
-    font-weight: 700;
-    cursor: pointer;
-    font-family: Arial, sans-serif;
-    transition: all 0.2s;
-    margin-top: 8px;
-  }
+.nik-badge { font-size: 0.72rem; background: #EDE9FE; color: #7C3AED; padding: 1px 6px; border-radius: 10px; }
 
-  .btn-generate:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37,99,235,0.4); }
-  .btn-generate:active { transform: translateY(0); }
-  .btn-generate:disabled { background: #9CA3AF; cursor: not-allowed; transform: none; }
-
-  .btn-generate.receipt-btn { background: linear-gradient(135deg, #16A34A, #15803D); }
-  .btn-generate.combined-btn { background: linear-gradient(135deg, #7C3AED, #6D28D9); }
-
-  .client-select-row {
-    display: flex;
-    gap: 8px;
-    align-items: flex-end;
-  }
-  .client-select-row select { flex: 1; }
-  .btn-new-client {
-    padding: 10px 14px;
-    background: #EFF6FF;
-    border: 1.5px solid #2563EB;
-    border-radius: 8px;
-    color: #2563EB;
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-    font-size: 0.85rem;
-  }
-
-  .modal {
-    display: none;
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0,0,0,0.5);
-    z-index: 1000;
-    justify-content: center;
-    align-items: center;
-  }
-  .modal.open { display: flex; }
-  .modal-box {
-    background: white;
-    border-radius: 16px;
-    padding: 24px;
-    width: 90%;
-    max-width: 460px;
-    direction: rtl;
-  }
-  .modal-box h3 { color: #2563EB; margin-bottom: 16px; }
-  .modal-actions { display: flex; gap: 10px; margin-top: 16px; }
-  .btn-save { flex: 1; padding: 12px; background: #2563EB; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; }
-  .btn-cancel { padding: 12px 16px; background: #F3F4F6; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; }
-
-  .toast {
-    position: fixed;
-    bottom: 24px;
-    right: 50%;
-    transform: translateX(50%);
-    background: #1E3A5F;
-    color: white;
-    padding: 12px 24px;
-    border-radius: 50px;
-    font-size: 0.95rem;
-    opacity: 0;
-    transition: opacity 0.3s;
-    z-index: 2000;
-  }
-  .toast.show { opacity: 1; }
-  .toast.success { background: #16A34A; }
-  .toast.error   { background: #DC2626; }
-
-  .spinner {
-    display: inline-block;
-    width: 18px; height: 18px;
-    border: 3px solid rgba(255,255,255,0.3);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    vertical-align: middle;
-    margin-left: 8px;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  @media (max-width: 480px) {
-    .row { grid-template-columns: 1fr; }
-    .type-selector { grid-template-columns: 1fr; }
-    .nik-row { grid-template-columns: 1fr; }
-  }
+@media (max-width: 520px) {
+  .row { grid-template-columns: 1fr; }
+  .row3 { grid-template-columns: 1fr; }
+  .type-selector { grid-template-columns: 1fr; }
+  .ledger-summary { grid-template-columns: 1fr 1fr; }
+}
 </style>
 </head>
 <body>
@@ -252,31 +212,33 @@
   <p>יהודה קורץ | עוסק פטור 027394865</p>
 </header>
 
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('new')">📝 הפקת מסמך</div>
+  <div class="tab" onclick="switchTab('history')">📋 היסטוריה</div>
+  <div class="tab" onclick="switchTab('ledger')">📊 כרטסת לקוח</div>
+</div>
+
+<!-- ===== לשונית הפקה ===== -->
+<div id="tab-new" class="tab-content active">
 <div class="container">
 
-  <!-- בחירת סוג מסמך -->
   <div class="card">
     <h2>סוג מסמך</h2>
     <div class="type-selector">
-      <button class="type-btn invoice active" onclick="setType('חשבונית עסקה', this)">
-        <span class="icon">🧾</span>
-        חשבונית עסקה
+      <button class="type-btn invoice active" onclick="setType('חשבונית עסקה',this)">
+        <span class="icon">🧾</span>חשבונית עסקה
       </button>
-      <button class="type-btn receipt" onclick="setType('קבלה', this)">
-        <span class="icon">💰</span>
-        קבלה
+      <button class="type-btn receipt" onclick="setType('קבלה',this)">
+        <span class="icon">💰</span>קבלה
       </button>
-      <button class="type-btn combined" onclick="setType('חשבונית עסקה + קבלה', this)">
-        <span class="icon">📑</span>
-        חשבונית + קבלה
+      <button class="type-btn combined" onclick="setType('חשבונית עסקה + קבלה',this)">
+        <span class="icon">📑</span>חשבונית + קבלה
       </button>
     </div>
   </div>
 
-  <!-- פרטי לקוח -->
   <div class="card">
     <h2>פרטי הלקוח</h2>
-
     <div class="form-group">
       <label>בחר לקוח קיים</label>
       <div class="client-select-row">
@@ -286,7 +248,6 @@
         <button class="btn-new-client" onclick="openModal()">+ לקוח חדש</button>
       </div>
     </div>
-
     <div class="row">
       <div class="form-group">
         <label>שם לקוח *</label>
@@ -297,12 +258,10 @@
         <input type="text" id="client_id" placeholder="123456789">
       </div>
     </div>
-
     <div class="form-group">
       <label>כתובת</label>
       <input type="text" id="address" placeholder="רחוב, עיר">
     </div>
-
     <div class="row">
       <div class="form-group">
         <label>תאריך</label>
@@ -315,13 +274,12 @@
     </div>
   </div>
 
-  <!-- סכומים -->
   <div class="card">
     <h2>סכומים</h2>
     <div class="amounts-section show-inv" id="amountsSection">
 
       <div class="inv-fields">
-        <h3>💙 חשבונית עסקה</h3>
+        <div class="section-title inv-title">🧾 חשבונית עסקה — חובה ללקוח</div>
         <div class="form-group">
           <label>סכום חשבונית ₪</label>
           <input type="number" id="inv_amt" placeholder="0.00" step="0.01" min="0">
@@ -329,23 +287,23 @@
       </div>
 
       <div class="rec-fields">
-        <h3>💚 קבלה / תשלום</h3>
+        <div class="section-title rec-title" style="margin-top:14px">💰 קבלה — פירעון החוב</div>
         <div class="form-group">
-          <label>התקבל בבנק ₪</label>
+          <label>התקבל בבנק ₪ <small style="color:#6B7280">(מה שהלקוח העביר ישירות)</small></label>
           <input type="number" id="bank_amt" placeholder="0.00" step="0.01" min="0" oninput="calcNik()">
         </div>
-        <div class="nik-row">
+        <div class="row3">
           <div class="form-group">
             <label>% ניכוי במקור</label>
             <input type="number" id="pct_nik" value="20" min="0" max="100" step="1" oninput="calcNik()">
           </div>
           <div class="form-group">
-            <label>ניכוי במקור ₪</label>
+            <label>ניכוי במקור ₪ <small style="color:#7C3AED">(הועבר למס הכנסה)</small></label>
             <input type="number" id="nik_amt" placeholder="0.00" step="0.01" min="0" oninput="calcTotal()">
           </div>
           <div class="form-group">
             <label>סה"כ קבלה ₪</label>
-            <input type="number" id="rec_total" placeholder="0.00" step="0.01" min="0" readonly style="background:#F0FDF4;">
+            <input type="number" id="rec_total" placeholder="0.00" step="0.01" readonly style="background:#F0FDF4;font-weight:700;color:#16A34A;">
           </div>
         </div>
         <div class="calc-display" id="calcDisplay" style="display:none"></div>
@@ -354,33 +312,86 @@
     </div>
   </div>
 
-  <!-- כפתור הפקה -->
   <button class="btn-generate" id="generateBtn" onclick="generate()">
-    📄 הפק מסמך
+    🧾 הפק חשבונית עסקה
   </button>
+</div>
+</div>
 
+<!-- ===== לשונית היסטוריה ===== -->
+<div id="tab-history" class="tab-content">
+<div class="container">
+  <div class="card">
+    <h2>📋 היסטוריית מסמכים</h2>
+    <div class="filter-bar">
+      <select id="histClientFilter">
+        <option value="">כל הלקוחות</option>
+      </select>
+      <select id="histTypeFilter">
+        <option value="">כל הסוגים</option>
+        <option value="חשבונית עסקה">חשבונית עסקה</option>
+        <option value="קבלה">קבלה</option>
+        <option value="חשבונית עסקה + קבלה">חשבונית + קבלה</option>
+      </select>
+      <button class="btn-filter" onclick="loadHistory()">🔍 סנן</button>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="history-table" id="historyTable">
+        <thead>
+          <tr>
+            <th>מס׳</th><th>תאריך</th><th>סוג</th><th>לקוח</th>
+            <th>חשבונית</th><th>בנק</th><th>ניכוי</th>
+          </tr>
+        </thead>
+        <tbody id="historyBody">
+          <tr><td colspan="7" class="empty-msg">טוען...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ===== לשונית כרטסת ===== -->
+<div id="tab-ledger" class="tab-content">
+<div class="container">
+  <div class="card">
+    <h2>📊 כרטסת לקוח</h2>
+    <div class="filter-bar">
+      <select id="ledgerClientSelect">
+        <option value="">— בחר לקוח —</option>
+      </select>
+      <button class="btn-filter" onclick="loadLedger()">📊 הצג כרטסת</button>
+    </div>
+  </div>
+
+  <div id="ledgerResult" style="display:none">
+    <div class="ledger-header" id="ledgerHeader"></div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="overflow-x:auto">
+        <table class="ledger-table" id="ledgerTable">
+          <thead>
+            <tr>
+              <th>מס׳</th><th>תאריך</th><th>סוג</th><th>תיאור</th>
+              <th>חובה ₪</th><th>זכות ₪</th><th style="min-width:80px">יתרה ₪</th>
+            </tr>
+          </thead>
+          <tbody id="ledgerBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
 </div>
 
 <!-- מודל לקוח חדש -->
 <div class="modal" id="clientModal">
   <div class="modal-box">
     <h3>➕ הוספת לקוח חדש</h3>
-    <div class="form-group">
-      <label>שם לקוח *</label>
-      <input type="text" id="new_client" placeholder="שם הלקוח">
-    </div>
-    <div class="form-group">
-      <label>מס׳ עוסק / ח.פ</label>
-      <input type="text" id="new_client_id" placeholder="123456789">
-    </div>
-    <div class="form-group">
-      <label>כתובת</label>
-      <input type="text" id="new_address" placeholder="רחוב, עיר">
-    </div>
-    <div class="form-group">
-      <label>טלפון</label>
-      <input type="text" id="new_phone" placeholder="050-0000000">
-    </div>
+    <div class="form-group"><label>שם לקוח *</label><input type="text" id="new_client" placeholder="שם הלקוח"></div>
+    <div class="form-group"><label>מס׳ עוסק / ח.פ</label><input type="text" id="new_client_id" placeholder="123456789"></div>
+    <div class="form-group"><label>כתובת</label><input type="text" id="new_address" placeholder="רחוב, עיר"></div>
+    <div class="form-group"><label>טלפון</label><input type="text" id="new_phone" placeholder="050-0000000"></div>
     <div class="modal-actions">
       <button class="btn-save" onclick="saveClient()">שמור לקוח</button>
       <button class="btn-cancel" onclick="closeModal()">ביטול</button>
@@ -388,29 +399,35 @@
   </div>
 </div>
 
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
 let currentType = 'חשבונית עסקה';
 let clients = [];
 
-// אתחול
 document.addEventListener('DOMContentLoaded', () => {
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('date').value = today;
+  document.getElementById('date').value = new Date().toISOString().split('T')[0];
   loadClients();
 });
 
+// ===== טאבים =====
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'history') loadHistory();
+  if (name === 'ledger')  loadLedgerClients();
+}
+
+// ===== סוג מסמך =====
 function setType(type, btn) {
   currentType = type;
   document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-
   const section = document.getElementById('amountsSection');
   const genBtn  = document.getElementById('generateBtn');
   section.className = 'amounts-section';
-
   if (type === 'חשבונית עסקה') {
     section.classList.add('show-inv');
     genBtn.className = 'btn-generate';
@@ -420,47 +437,49 @@ function setType(type, btn) {
     genBtn.className = 'btn-generate receipt-btn';
     genBtn.textContent = '💰 הפק קבלה';
   } else {
-    section.classList.add('show-inv');
-    section.classList.add('show-rec');
+    section.classList.add('show-inv','show-rec');
     genBtn.className = 'btn-generate combined-btn';
     genBtn.textContent = '📑 הפק חשבונית + קבלה';
   }
 }
 
+// ===== חישובי ניכוי =====
 function calcNik() {
   const bank = parseFloat(document.getElementById('bank_amt').value) || 0;
   const pct  = (parseFloat(document.getElementById('pct_nik').value) || 0) / 100;
   if (bank > 0 && pct > 0) {
-    const nik = Math.round(bank * pct / (1 - pct) * 100) / 100;
+    const nik = Math.round(bank * pct / (1-pct) * 100) / 100;
     document.getElementById('nik_amt').value = nik.toFixed(2);
-    calcTotal();
   }
+  calcTotal();
 }
-
 function calcTotal() {
   const bank = parseFloat(document.getElementById('bank_amt').value) || 0;
   const nik  = parseFloat(document.getElementById('nik_amt').value) || 0;
   const total = bank + nik;
-  document.getElementById('rec_total').value = total.toFixed(2);
+  document.getElementById('rec_total').value = total > 0 ? total.toFixed(2) : '';
+  const display = document.getElementById('calcDisplay');
   if (total > 0) {
-    const display = document.getElementById('calcDisplay');
     display.style.display = 'block';
-    display.textContent = `סה"כ קבלה: ₪${total.toFixed(2)} (בנק: ₪${bank.toFixed(2)} + ניכוי: ₪${nik.toFixed(2)})`;
+    display.textContent = `סה"כ פירעון: ₪${total.toFixed(2)} | בנק: ₪${bank.toFixed(2)} + ניכוי במקור למס הכנסה: ₪${nik.toFixed(2)}`;
+  } else {
+    display.style.display = 'none';
   }
 }
 
+// ===== הפקת מסמך =====
 async function generate() {
   const client = document.getElementById('client').value.trim();
-  if (!client) { showToast('נא להזין שם לקוח', 'error'); return; }
+  if (!client) { showToast('נא להזין שם לקוח','error'); return; }
 
   const btn = document.getElementById('generateBtn');
   const origText = btn.textContent;
   btn.disabled = true;
-  btn.innerHTML = origText + ' <span class="spinner"></span>';
+  btn.innerHTML = '<span class="spinner"></span>' + origText;
 
   const dateVal = document.getElementById('date').value;
-  const dateParts = dateVal.split('-');
-  const dateStr = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : dateVal;
+  const dp = dateVal.split('-');
+  const dateStr = dp.length===3 ? `${dp[2]}/${dp[1]}/${dp[0]}` : dateVal;
 
   const data = {
     doc_type:  currentType,
@@ -470,113 +489,233 @@ async function generate() {
     address:   document.getElementById('address').value,
     desc:      document.getElementById('desc').value,
     inv_amt:   document.getElementById('inv_amt').value || null,
-    rec_total: document.getElementById('rec_total').value || null,
     bank_amt:  document.getElementById('bank_amt').value || null,
-    pct_nik:   (parseFloat(document.getElementById('pct_nik').value) || 20) / 100,
     nik_amt:   document.getElementById('nik_amt').value || null,
+    pct_nik:   (parseFloat(document.getElementById('pct_nik').value)||20)/100,
   };
 
   try {
     const res = await fetch('/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify(data)
     });
-
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || 'שגיאה');
-    }
-
+    if (!res.ok) { const e=await res.json(); throw new Error(e.error||'שגיאה'); }
     const blob = await res.blob();
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
-    const cd   = res.headers.get('Content-Disposition') || '';
-    const fn   = cd.match(/filename\*?=(?:UTF-8'')?([^;]+)/)?.[1] || 'document.docx';
-    a.href = url;
-    a.download = decodeURIComponent(fn);
-    a.click();
+    const cd   = res.headers.get('Content-Disposition')||'';
+    const fn   = cd.match(/filename\*?=(?:UTF-8'')?([^;]+)/)?.[1]||'document.docx';
+    a.href=url; a.download=decodeURIComponent(fn); a.click();
     URL.revokeObjectURL(url);
-
-    showToast('המסמך הופק בהצלחה! ✅', 'success');
-
-  } catch (e) {
-    showToast('שגיאה: ' + e.message, 'error');
+    showToast('המסמך הופק בהצלחה! ✅','success');
+  } catch(e) {
+    showToast('שגיאה: '+e.message,'error');
   } finally {
-    btn.disabled = false;
-    btn.textContent = origText;
+    btn.disabled=false; btn.textContent=origText;
   }
 }
 
+// ===== לקוחות =====
 async function loadClients() {
   try {
     const res = await fetch('/clients');
     clients = await res.json();
     const sel = document.getElementById('clientSelect');
     sel.innerHTML = '<option value="">— בחר לקוח —</option>';
-    clients.forEach((c, i) => {
-      const opt = document.createElement('option');
-      opt.value = i;
-      opt.textContent = c.name;
-      sel.appendChild(opt);
+    clients.forEach((c,i) => {
+      const opt=document.createElement('option');
+      opt.value=i; opt.textContent=c.name; sel.appendChild(opt);
     });
-  } catch(e) {}
+  } catch(e){}
 }
-
 function fillClient() {
   const idx = document.getElementById('clientSelect').value;
-  if (idx === '') return;
+  if (idx==='') return;
   const c = clients[idx];
-  document.getElementById('client').value    = c.name    || '';
-  document.getElementById('client_id').value = c.id      || '';
-  document.getElementById('address').value   = c.address || '';
+  document.getElementById('client').value    = c.name    ||'';
+  document.getElementById('client_id').value = c.tax_id  ||'';
+  document.getElementById('address').value   = c.address ||'';
 }
-
-function openModal() {
-  document.getElementById('clientModal').classList.add('open');
-}
+function openModal()  { document.getElementById('clientModal').classList.add('open'); }
 function closeModal() {
   document.getElementById('clientModal').classList.remove('open');
-  ['new_client','new_client_id','new_address','new_phone'].forEach(id => {
-    document.getElementById(id).value = '';
+  ['new_client','new_client_id','new_address','new_phone'].forEach(id=>{
+    document.getElementById(id).value='';
   });
 }
-
 async function saveClient() {
   const name = document.getElementById('new_client').value.trim();
-  if (!name) { showToast('נא להזין שם לקוח', 'error'); return; }
-
+  if (!name) { showToast('נא להזין שם לקוח','error'); return; }
   const data = {
-    name:    name,
-    id:      document.getElementById('new_client_id').value,
+    name, id: document.getElementById('new_client_id').value,
     address: document.getElementById('new_address').value,
     phone:   document.getElementById('new_phone').value,
   };
-
   try {
-    await fetch('/clients', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    await loadClients();
-    closeModal();
-    showToast('הלקוח נשמר בהצלחה ✅', 'success');
-  } catch(e) {
-    showToast('שגיאה בשמירה', 'error');
-  }
+    await fetch('/clients',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    await loadClients(); closeModal();
+    showToast('הלקוח נשמר בהצלחה ✅','success');
+  } catch(e) { showToast('שגיאה בשמירה','error'); }
+}
+
+// ===== היסטוריה =====
+function fmt(v) { return v ? '₪'+parseFloat(v).toLocaleString('he-IL',{minimumFractionDigits:2}) : '—'; }
+function badgeType(t) {
+  if (t==='חשבונית עסקה')        return `<span class="badge badge-inv">חשבונית</span>`;
+  if (t==='קבלה')                return `<span class="badge badge-rec">קבלה</span>`;
+  return `<span class="badge badge-both">חשב+קבלה</span>`;
+}
+
+async function loadHistory() {
+  const client = document.getElementById('histClientFilter').value;
+  const type   = document.getElementById('histTypeFilter').value;
+  try {
+    let url = '/history';
+    if (client) url += '?client='+encodeURIComponent(client);
+    const res  = await fetch(url);
+    let docs   = await res.json();
+    if (type) docs = docs.filter(d=>d.doc_type===type);
+
+    // מלא פילטר לקוחות
+    const names = [...new Set(docs.map(d=>d.client_name))].sort();
+    const sel = document.getElementById('histClientFilter');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">כל הלקוחות</option>';
+    names.forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o); });
+    sel.value = cur;
+
+    const tbody = document.getElementById('historyBody');
+    if (!docs.length) {
+      tbody.innerHTML='<tr><td colspan="7" class="empty-msg">אין מסמכים</td></tr>'; return;
+    }
+    tbody.innerHTML = docs.map(d=>`
+      <tr>
+        <td><strong>${d.doc_num}</strong></td>
+        <td>${d.date}</td>
+        <td>${badgeType(d.doc_type)}</td>
+        <td>${d.client_name}</td>
+        <td class="debit-cell">${d.inv_amt ? fmt(d.inv_amt) : '—'}</td>
+        <td class="credit-cell">${d.bank_amt ? fmt(d.bank_amt) : '—'}</td>
+        <td>${d.nik_amt ? '<span class="nik-badge">ניכוי '+fmt(d.nik_amt)+'</span>' : '—'}</td>
+      </tr>`).join('');
+  } catch(e) { showToast('שגיאה בטעינה','error'); }
+}
+
+// ===== כרטסת =====
+async function loadLedgerClients() {
+  try {
+    const res = await fetch('/client_names');
+    const names = await res.json();
+    const sel = document.getElementById('ledgerClientSelect');
+    sel.innerHTML = '<option value="">— בחר לקוח —</option>';
+    names.forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o); });
+  } catch(e){}
+}
+
+async function loadLedger() {
+  const client = document.getElementById('ledgerClientSelect').value;
+  if (!client) { showToast('בחר לקוח','error'); return; }
+  try {
+    const res  = await fetch('/ledger/'+encodeURIComponent(client));
+    const data = await res.json();
+
+    const bal = data.balance;
+    const balClass = bal>0.01 ? 'balance-pos' : bal<-0.01 ? 'balance-neg' : 'balance-zero';
+    const balLabel = bal>0.01 ? 'יתרה לגבייה' : bal<-0.01 ? 'יתרת זכות' : 'מאוזן';
+
+    document.getElementById('ledgerHeader').innerHTML = `
+      <h3>📊 כרטסת: ${client}</h3>
+      <div class="ledger-summary">
+        <div class="summary-box">
+          <div class="label">סה"כ חובה</div>
+          <div class="amount">₪${data.total_debit.toLocaleString('he-IL',{minimumFractionDigits:2})}</div>
+        </div>
+        <div class="summary-box">
+          <div class="label">התקבל בבנק</div>
+          <div class="amount">₪${data.total_bank.toLocaleString('he-IL',{minimumFractionDigits:2})}</div>
+        </div>
+        <div class="summary-box">
+          <div class="label">ניכוי במקור</div>
+          <div class="amount">₪${data.total_nik.toLocaleString('he-IL',{minimumFractionDigits:2})}</div>
+        </div>
+        <div class="summary-box balance-box">
+          <div class="label">${balLabel}</div>
+          <div class="amount">₪${Math.abs(bal).toLocaleString('he-IL',{minimumFractionDigits:2})}</div>
+        </div>
+      </div>`;
+
+    const tbody = document.getElementById('ledgerBody');
+    if (!data.entries.length) {
+      tbody.innerHTML='<tr><td colspan="7" class="empty-msg">אין תנועות</td></tr>';
+    } else {
+      tbody.innerHTML = data.entries.map(e => {
+        const balVal = e.balance;
+        const bClass = balVal>0.01?'balance-pos':balVal<-0.01?'balance-neg':'balance-zero';
+        const nikNote = e.nik_amt ? `<br><span class="nik-badge">ניכוי ${fmt(e.nik_amt)}</span>` : '';
+        return `<tr>
+          <td><strong>${e.doc_num}</strong></td>
+          <td>${e.date}</td>
+          <td>${badgeType(e.doc_type)}</td>
+          <td>${e.description||'—'}</td>
+          <td class="debit-cell">${e.debit ? fmt(e.debit) : '—'}</td>
+          <td class="credit-cell">${e.credit ? fmt(e.credit)+''+nikNote : '—'}</td>
+          <td class="${bClass}">${fmt(Math.abs(balVal))}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    document.getElementById('ledgerResult').style.display='block';
+  } catch(e) { showToast('שגיאה בטעינה','error'); }
 }
 
 function showToast(msg, type='') {
   const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast show' + (type ? ' ' + type : '');
-  setTimeout(() => t.className = 'toast', 3000);
+  t.textContent=msg; t.className='toast show'+(type?' '+type:'');
+  setTimeout(()=>t.className='toast',3000);
 }
 
-// אתחול כפתור
 setType('חשבונית עסקה', document.querySelector('.type-btn.invoice'));
+
+// ===== PWA =====
+let deferredPrompt = null;
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/static/sw.js')
+    .then(() => console.log('SW registered'))
+    .catch(e => console.log('SW error:', e));
+}
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('installBanner').style.display = 'flex';
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('installBanner').style.display = 'none';
+});
+async function installApp() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') document.getElementById('installBanner').style.display = 'none';
+  deferredPrompt = null;
+}
 </script>
+
+<div id="installBanner" style="display:none;position:fixed;bottom:0;left:0;right:0;
+  background:linear-gradient(135deg,#1E3A5F,#2563EB);color:white;padding:14px 20px;
+  z-index:3000;justify-content:space-between;align-items:center;
+  box-shadow:0 -4px 20px rgba(0,0,0,0.2);">
+  <div>
+    <div style="font-weight:700;font-size:0.95rem">📲 התקן כאפליקציה</div>
+    <div style="font-size:0.78rem;opacity:0.85">גישה מהירה מהמסך הראשי</div>
+  </div>
+  <div style="display:flex;gap:10px">
+    <button onclick="installApp()" style="padding:9px 18px;background:white;color:#1E3A5F;
+      border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.88rem;">התקן</button>
+    <button onclick="document.getElementById('installBanner').style.display='none'"
+      style="padding:9px 14px;background:rgba(255,255,255,0.2);border:none;
+      border-radius:8px;color:white;cursor:pointer;font-size:0.88rem;">לא עכשיו</button>
+  </div>
+</div>
 
 </body>
 </html>
