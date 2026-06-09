@@ -1,4 +1,3 @@
-
 from flask import Flask, render_template, request, send_file, jsonify
 from docx import Document
 from docx.shared import Pt, RGBColor, Cm
