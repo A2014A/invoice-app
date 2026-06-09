@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מערכת חשבוניות — יהודה קורץ</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: Arial, sans-serif;
+    background: #F1F5F9;
+    color: #1E3A5F;
+    direction: rtl;
+  }
+
+  header {
+    background: linear-gradient(135deg, #1E3A5F, #2563EB);
+    color: white;
+    padding: 20px 24px;
+    text-align: center;
+  }
+  header h1 { font-size: 1.6rem; font-weight: 700; }
+  header p  { font-size: 0.9rem; opacity: 0.85; margin-top: 4px; }
+
+  .container {
+    max-width: 700px;
+    margin: 24px auto;
+    padding: 0 16px;
+  }
+
+  .card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  .card h2 {
+    font-size: 1.1rem;
+    color: #2563EB;
+    border-bottom: 2px solid #DBEAFE;
+    padding-bottom: 10px;
+    margin-bottom: 18px;
+  }
+
+  .form-group {
+    margin-bottom: 14px;
+  }
+
+  label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 5px;
+  }
+
+  input, select, textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid #D1D5DB;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: Arial, sans-serif;
+    direction: rtl;
+    transition: border-color 0.2s;
+    background: #FAFAFA;
+  }
+
+  input:focus, select:focus {
+    outline: none;
+    border-color: #2563EB;
+    background: white;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .type-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .type-btn {
+    padding: 12px 8px;
+    border: 2px solid #D1D5DB;
+    border-radius: 10px;
+    background: white;
+    cursor: pointer;
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    color: #374151;
+  }
+
+  .type-btn.invoice.active  { border-color: #2563EB; background: #EFF6FF; color: #2563EB; }
+  .type-btn.receipt.active  { border-color: #16A34A; background: #F0FDF4; color: #16A34A; }
+  .type-btn.combined.active { border-color: #7C3AED; background: #F5F3FF; color: #7C3AED; }
+  .type-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+
+  .type-btn .icon { font-size: 1.5rem; display: block; margin-bottom: 4px; }
+
+  .amounts-section {
+    background: #F8FAFC;
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 10px;
+  }
+
+  .amounts-section h3 {
+    font-size: 0.9rem;
+    color: #374151;
+    margin-bottom: 12px;
+  }
+
+  .inv-fields  { display: none; }
+  .rec-fields  { display: none; }
+
+  .show-inv .inv-fields { display: block; }
+  .show-rec .rec-fields { display: block; }
+
+  .nik-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+
+  .calc-display {
+    background: #EDE9FE;
+    border: 1px solid #C4B5FD;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    color: #7C3AED;
+    margin-top: 8px;
+    font-weight: 600;
+  }
+
+  .btn-generate {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #2563EB, #1E40AF);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    transition: all 0.2s;
+    margin-top: 8px;
+  }
+
+  .btn-generate:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37,99,235,0.4); }
+  .btn-generate:active { transform: translateY(0); }
+  .btn-generate:disabled { background: #9CA3AF; cursor: not-allowed; transform: none; }
+
+  .btn-generate.receipt-btn { background: linear-gradient(135deg, #16A34A, #15803D); }
+  .btn-generate.combined-btn { background: linear-gradient(135deg, #7C3AED, #6D28D9); }
+
+  .client-select-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+  }
+  .client-select-row select { flex: 1; }
+  .btn-new-client {
+    padding: 10px 14px;
+    background: #EFF6FF;
+    border: 1.5px solid #2563EB;
+    border-radius: 8px;
+    color: #2563EB;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    font-size: 0.85rem;
+  }
+
+  .modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+  }
+  .modal.open { display: flex; }
+  .modal-box {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    width: 90%;
+    max-width: 460px;
+    direction: rtl;
+  }
+  .modal-box h3 { color: #2563EB; margin-bottom: 16px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 16px; }
+  .btn-save { flex: 1; padding: 12px; background: #2563EB; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+  .btn-cancel { padding: 12px 16px; background: #F3F4F6; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 50%;
+    transform: translateX(50%);
+    background: #1E3A5F;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-size: 0.95rem;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 2000;
+  }
+  .toast.show { opacity: 1; }
+  .toast.success { background: #16A34A; }
+  .toast.error   { background: #DC2626; }
+
+  .spinner {
+    display: inline-block;
+    width: 18px; height: 18px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-left: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 480px) {
+    .row { grid-template-columns: 1fr; }
+    .type-selector { grid-template-columns: 1fr; }
+    .nik-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📄 מערכת חשבוניות</h1>
+  <p>יהודה קורץ | עוסק פטור 027394865</p>
+</header>
+
+<div class="container">
+
+  <!-- בחירת סוג מסמך -->
+  <div class="card">
+    <h2>סוג מסמך</h2>
+    <div class="type-selector">
+      <button class="type-btn invoice active" onclick="setType('חשבונית עסקה', this)">
+        <span class="icon">🧾</span>
+        חשבונית עסקה
+      </button>
+      <button class="type-btn receipt" onclick="setType('קבלה', this)">
+        <span class="icon">💰</span>
+        קבלה
+      </button>
+      <button class="type-btn combined" onclick="setType('חשבונית עסקה + קבלה', this)">
+        <span class="icon">📑</span>
+        חשבונית + קבלה
+      </button>
+    </div>
+  </div>
+
+  <!-- פרטי לקוח -->
+  <div class="card">
+    <h2>פרטי הלקוח</h2>
+
+    <div class="form-group">
+      <label>בחר לקוח קיים</label>
+      <div class="client-select-row">
+        <select id="clientSelect" onchange="fillClient()">
+          <option value="">— בחר לקוח —</option>
+        </select>
+        <button class="btn-new-client" onclick="openModal()">+ לקוח חדש</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="form-group">
+        <label>שם לקוח *</label>
+        <input type="text" id="client" placeholder="שם הלקוח">
+      </div>
+      <div class="form-group">
+        <label>מס׳ עוסק / ח.פ</label>
+        <input type="text" id="client_id" placeholder="123456789">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>כתובת</label>
+      <input type="text" id="address" placeholder="רחוב, עיר">
+    </div>
+
+    <div class="row">
+      <div class="form-group">
+        <label>תאריך</label>
+        <input type="date" id="date">
+      </div>
+      <div class="form-group">
+        <label>תיאור / הערה</label>
+        <input type="text" id="desc" placeholder="תיאור השירות">
+      </div>
+    </div>
+  </div>
+
+  <!-- סכומים -->
+  <div class="card">
+    <h2>סכומים</h2>
+    <div class="amounts-section show-inv" id="amountsSection">
+
+      <div class="inv-fields">
+        <h3>💙 חשבונית עסקה</h3>
+        <div class="form-group">
+          <label>סכום חשבונית ₪</label>
+          <input type="number" id="inv_amt" placeholder="0.00" step="0.01" min="0">
+        </div>
+      </div>
+
+      <div class="rec-fields">
+        <h3>💚 קבלה / תשלום</h3>
+        <div class="form-group">
+          <label>התקבל בבנק ₪</label>
+          <input type="number" id="bank_amt" placeholder="0.00" step="0.01" min="0" oninput="calcNik()">
+        </div>
+        <div class="nik-row">
+          <div class="form-group">
+            <label>% ניכוי במקור</label>
+            <input type="number" id="pct_nik" value="20" min="0" max="100" step="1" oninput="calcNik()">
+          </div>
+          <div class="form-group">
+            <label>ניכוי במקור ₪</label>
+            <input type="number" id="nik_amt" placeholder="0.00" step="0.01" min="0" oninput="calcTotal()">
+          </div>
+          <div class="form-group">
+            <label>סה"כ קבלה ₪</label>
+            <input type="number" id="rec_total" placeholder="0.00" step="0.01" min="0" readonly style="background:#F0FDF4;">
+          </div>
+        </div>
+        <div class="calc-display" id="calcDisplay" style="display:none"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- כפתור הפקה -->
+  <button class="btn-generate" id="generateBtn" onclick="generate()">
+    📄 הפק מסמך
+  </button>
+
+</div>
+
+<!-- מודל לקוח חדש -->
+<div class="modal" id="clientModal">
+  <div class="modal-box">
+    <h3>➕ הוספת לקוח חדש</h3>
+    <div class="form-group">
+      <label>שם לקוח *</label>
+      <input type="text" id="new_client" placeholder="שם הלקוח">
+    </div>
+    <div class="form-group">
+      <label>מס׳ עוסק / ח.פ</label>
+      <input type="text" id="new_client_id" placeholder="123456789">
+    </div>
+    <div class="form-group">
+      <label>כתובת</label>
+      <input type="text" id="new_address" placeholder="רחוב, עיר">
+    </div>
+    <div class="form-group">
+      <label>טלפון</label>
+      <input type="text" id="new_phone" placeholder="050-0000000">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-save" onclick="saveClient()">שמור לקוח</button>
+      <button class="btn-cancel" onclick="closeModal()">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+let currentType = 'חשבונית עסקה';
+let clients = [];
+
+// אתחול
+document.addEventListener('DOMContentLoaded', () => {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('date').value = today;
+  loadClients();
+});
+
+function setType(type, btn) {
+  currentType = type;
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  const section = document.getElementById('amountsSection');
+  const genBtn  = document.getElementById('generateBtn');
+  section.className = 'amounts-section';
+
+  if (type === 'חשבונית עסקה') {
+    section.classList.add('show-inv');
+    genBtn.className = 'btn-generate';
+    genBtn.textContent = '🧾 הפק חשבונית עסקה';
+  } else if (type === 'קבלה') {
+    section.classList.add('show-rec');
+    genBtn.className = 'btn-generate receipt-btn';
+    genBtn.textContent = '💰 הפק קבלה';
+  } else {
+    section.classList.add('show-inv');
+    section.classList.add('show-rec');
+    genBtn.className = 'btn-generate combined-btn';
+    genBtn.textContent = '📑 הפק חשבונית + קבלה';
+  }
+}
+
+function calcNik() {
+  const bank = parseFloat(document.getElementById('bank_amt').value) || 0;
+  const pct  = (parseFloat(document.getElementById('pct_nik').value) || 0) / 100;
+  if (bank > 0 && pct > 0) {
+    const nik = Math.round(bank * pct / (1 - pct) * 100) / 100;
+    document.getElementById('nik_amt').value = nik.toFixed(2);
+    calcTotal();
+  }
+}
+
+function calcTotal() {
+  const bank = parseFloat(document.getElementById('bank_amt').value) || 0;
+  const nik  = parseFloat(document.getElementById('nik_amt').value) || 0;
+  const total = bank + nik;
+  document.getElementById('rec_total').value = total.toFixed(2);
+  if (total > 0) {
+    const display = document.getElementById('calcDisplay');
+    display.style.display = 'block';
+    display.textContent = `סה"כ קבלה: ₪${total.toFixed(2)} (בנק: ₪${bank.toFixed(2)} + ניכוי: ₪${nik.toFixed(2)})`;
+  }
+}
+
+async function generate() {
+  const client = document.getElementById('client').value.trim();
+  if (!client) { showToast('נא להזין שם לקוח', 'error'); return; }
+
+  const btn = document.getElementById('generateBtn');
+  const origText = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = origText + ' <span class="spinner"></span>';
+
+  const dateVal = document.getElementById('date').value;
+  const dateParts = dateVal.split('-');
+  const dateStr = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : dateVal;
+
+  const data = {
+    doc_type:  currentType,
+    date:      dateStr,
+    client:    client,
+    client_id: document.getElementById('client_id').value,
+    address:   document.getElementById('address').value,
+    desc:      document.getElementById('desc').value,
+    inv_amt:   document.getElementById('inv_amt').value || null,
+    rec_total: document.getElementById('rec_total').value || null,
+    bank_amt:  document.getElementById('bank_amt').value || null,
+    pct_nik:   (parseFloat(document.getElementById('pct_nik').value) || 20) / 100,
+    nik_amt:   document.getElementById('nik_amt').value || null,
+  };
+
+  try {
+    const res = await fetch('/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'שגיאה');
+    }
+
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    const cd   = res.headers.get('Content-Disposition') || '';
+    const fn   = cd.match(/filename\*?=(?:UTF-8'')?([^;]+)/)?.[1] || 'document.docx';
+    a.href = url;
+    a.download = decodeURIComponent(fn);
+    a.click();
+    URL.revokeObjectURL(url);
+
+    showToast('המסמך הופק בהצלחה! ✅', 'success');
+
+  } catch (e) {
+    showToast('שגיאה: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = origText;
+  }
+}
+
+async function loadClients() {
+  try {
+    const res = await fetch('/clients');
+    clients = await res.json();
+    const sel = document.getElementById('clientSelect');
+    sel.innerHTML = '<option value="">— בחר לקוח —</option>';
+    clients.forEach((c, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = c.name;
+      sel.appendChild(opt);
+    });
+  } catch(e) {}
+}
+
+function fillClient() {
+  const idx = document.getElementById('clientSelect').value;
+  if (idx === '') return;
+  const c = clients[idx];
+  document.getElementById('client').value    = c.name    || '';
+  document.getElementById('client_id').value = c.id      || '';
+  document.getElementById('address').value   = c.address || '';
+}
+
+function openModal() {
+  document.getElementById('clientModal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('clientModal').classList.remove('open');
+  ['new_client','new_client_id','new_address','new_phone'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+}
+
+async function saveClient() {
+  const name = document.getElementById('new_client').value.trim();
+  if (!name) { showToast('נא להזין שם לקוח', 'error'); return; }
+
+  const data = {
+    name:    name,
+    id:      document.getElementById('new_client_id').value,
+    address: document.getElementById('new_address').value,
+    phone:   document.getElementById('new_phone').value,
+  };
+
+  try {
+    await fetch('/clients', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    await loadClients();
+    closeModal();
+    showToast('הלקוח נשמר בהצלחה ✅', 'success');
+  } catch(e) {
+    showToast('שגיאה בשמירה', 'error');
+  }
+}
+
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+// אתחול כפתור
+setType('חשבונית עסקה', document.querySelector('.type-btn.invoice'));
+</script>
+
+</body>
+</html>
