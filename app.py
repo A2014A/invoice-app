@@ -16,9 +16,6 @@ app = Flask(__name__)
 OWNER_NAME = "יהודה קורץ"
 OWNER_TAX  = "027394865"
 DB_PATH    = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data.db")
-
-# ===== מסד נתונים =====
-
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -63,10 +60,7 @@ def next_doc_num(conn, doc_type):
     num = row["next_num"]
     conn.execute("UPDATE counters SET next_num=? WHERE doc_type=?", (num+1, doc_type))
     return num
-
-# ===== בניית Word =====
-
-def set_cell_bg(cell, hex_color):
+    def set_cell_bg(cell, hex_color):
     tc = cell._tc
     tcPr = tc.get_or_add_tcPr()
     shd = OxmlElement('w:shd')
@@ -103,8 +97,7 @@ def add_para(cell, text, bold=False, size=11, color=None, align=WD_ALIGN_PARAGRA
     if color:
         run.font.color.rgb = RGBColor.from_string(color)
     return para
-
-def build_doc(data):
+    def build_doc(data):
     doc_type  = data.get('doc_type', '')
     doc_num   = data.get('doc_num', '')
     date_str  = data.get('date', datetime.date.today().strftime('%d/%m/%Y'))
@@ -135,7 +128,6 @@ def build_doc(data):
     section.top_margin  = section.bottom_margin = Cm(2)
     doc.settings.element.append(OxmlElement('w:bidi'))
 
-    # הגדרת RTL לכל המסמך
     for style_name in ['Normal', 'Table Grid']:
         try:
             s = doc.styles[style_name]
@@ -146,7 +138,6 @@ def build_doc(data):
 
     title_color = {'חשבונית עסקה':'2563EB','קבלה':'16A34A'}.get(doc_type,'7C3AED')
 
-    # כותרת
     for txt, sz, bold, col in [
         (doc_type, 26, True, title_color),
         (OWNER_NAME, 18, True, '1E3A5F'),
@@ -160,13 +151,9 @@ def build_doc(data):
         r.font.color.rgb = RGBColor.from_string(col)
 
     doc.add_paragraph()
-
-    # מספר + תאריך — מספר מימין, תאריך משמאל
     t1 = doc.add_table(rows=1, cols=2)
     t1.style = 'Table Grid'
-    t1.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
-    # תאריך — תא שמאלי
     c_date = t1.rows[0].cells[0]
     set_cell_bg(c_date, "F8FAFC")
     p_date = c_date.paragraphs[0]
@@ -175,7 +162,6 @@ def build_doc(data):
     rd = p_date.add_run(f"תאריך: {date_str}")
     rd.font.name='Arial'; rd.font.size=Pt(12)
 
-    # מספר מסמך — תא ימני
     c_num = t1.rows[0].cells[1]
     set_cell_bg(c_num, "EFF6FF")
     make_border(c_num, "2563EB")
@@ -191,11 +177,9 @@ def build_doc(data):
 
     doc.add_paragraph()
 
-    # פרטי לקוח — טבלה פשוטה ללא קווים כפולים
     t2 = doc.add_table(rows=3, cols=2)
     t2.style = 'Table Grid'
 
-    # כותרת
     c_title = t2.rows[0].cells[0]
     c_title.merge(t2.rows[0].cells[1])
     set_cell_bg(c_title, "E8F5E9")
@@ -206,24 +190,18 @@ def build_doc(data):
     rt.font.name='Arial'; rt.font.size=Pt(12); rt.font.bold=True
     rt.font.color.rgb = RGBColor.from_string('16A34A')
 
-    # שורה 1: שם לקוח | מס׳ עוסק
-    for ci, (label, val) in enumerate([(f"מס׳ עוסק: {client_id}", f"שם לקוח: {client}")]):
-        pass
-    # שם לקוח מימין
     c_name = t2.rows[1].cells[1]
     set_cell_bg(c_name, "F8FAFC")
     p_name = c_name.paragraphs[0]; p_name.alignment=WD_ALIGN_PARAGRAPH.RIGHT; set_rtl(p_name)
     r_name = p_name.add_run(f"שם לקוח: {client}")
     r_name.font.name='Arial'; r_name.font.size=Pt(11)
 
-    # מס׳ עוסק משמאל
     c_id = t2.rows[1].cells[0]
     set_cell_bg(c_id, "F8FAFC")
     p_id = c_id.paragraphs[0]; p_id.alignment=WD_ALIGN_PARAGRAPH.RIGHT; set_rtl(p_id)
     r_id = p_id.add_run(f"מס׳ עוסק: {client_id}")
     r_id.font.name='Arial'; r_id.font.size=Pt(11)
 
-    # שורה 2: כתובת בלבד
     c_addr = t2.rows[2].cells[1]
     set_cell_bg(c_addr, "F8FAFC")
     p_addr = c_addr.paragraphs[0]; p_addr.alignment=WD_ALIGN_PARAGRAPH.RIGHT; set_rtl(p_addr)
@@ -237,10 +215,7 @@ def build_doc(data):
     r_desc.font.name='Arial'; r_desc.font.size=Pt(11)
 
     doc.add_paragraph()
-
-    # חשבונית
     if doc_type in ('חשבונית עסקה','חשבונית עסקה + קבלה'):
-        # כותרת עמודות: סכום | כמות | תיאור (מימין לשמאל)
         t3 = doc.add_table(rows=2, cols=3)
         t3.style = 'Table Grid'
         headers = ["סכום ₪", "כמות", "תיאור השירות / הפריט"]
@@ -261,11 +236,10 @@ def build_doc(data):
 
         doc.add_paragraph()
 
-        # סה"כ — ימין=סכום, שמאל=תווית
         t4 = doc.add_table(rows=1, cols=2)
         t4.style = 'Table Grid'
-        cr = t4.rows[0].cells[0]  # שמאל — תווית
-        cl = t4.rows[0].cells[1]  # ימין — סכום
+        cr = t4.rows[0].cells[0]
+        cl = t4.rows[0].cells[1]
         set_cell_bg(cr, "2563EB")
         pr = cr.paragraphs[0]; pr.alignment=WD_ALIGN_PARAGRAPH.CENTER; set_rtl(pr)
         rr = pr.add_run('סה"כ לתשלום:')
@@ -278,7 +252,6 @@ def build_doc(data):
         rl2.font.color.rgb = RGBColor.from_string('1E3A5F')
         doc.add_paragraph()
 
-    # קבלה
     if doc_type in ('קבלה','חשבונית עסקה + קבלה'):
         rows_data = [
             ('סה"כ שולם:', f"₪ {rec_total:,.2f}", "F0FDF4","16A34A"),
@@ -289,7 +262,6 @@ def build_doc(data):
         t5 = doc.add_table(rows=4, cols=2)
         t5.style = 'Table Grid'
         for i,(label,val,bg,col) in enumerate(rows_data):
-            # ימין — תווית, שמאל — סכום
             c_label = t5.rows[i].cells[1]
             c_val   = t5.rows[i].cells[0]
             set_cell_bg(c_label, bg); set_cell_bg(c_val, bg)
@@ -303,7 +275,6 @@ def build_doc(data):
             rv.font.color.rgb = RGBColor.from_string(col)
         doc.add_paragraph()
 
-    # הערה
     p_note = doc.add_paragraph()
     p_note.alignment = WD_ALIGN_PARAGRAPH.CENTER
     set_rtl(p_note)
@@ -313,18 +284,13 @@ def build_doc(data):
 
     doc.add_paragraph()
 
-    # חתימות
     t6 = doc.add_table(rows=1, cols=2)
     t6.style = 'Table Grid'
-    # ימין — מוכר, שמאל — לקוח
     add_para(t6.rows[0].cells[1], "חתימת המוכר: ____________________", size=11)
     add_para(t6.rows[0].cells[0], "חתימת הלקוח: ____________________", size=11)
 
     return doc
-
-# ===== נתיבים =====
-
-@app.route('/')
+    @app.route('/')
 def index():
     return render_template('index.html')
 
@@ -376,117 +342,6 @@ def generate():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/clients', methods=['GET','POST'])
-def clients():
-    conn = get_db()
-    if request.method == 'GET':
-        rows = conn.execute("SELECT * FROM clients ORDER BY name").fetchall()
-        conn.close()
-        return jsonify([dict(r) for r in rows])
-    else:
-        data = request.json
-        conn.execute("INSERT INTO clients (name,tax_id,address,phone) VALUES (?,?,?,?)",
-            (data.get('name',''), data.get('id',''), data.get('address',''), data.get('phone','')))
-        conn.commit(); conn.close()
-        return jsonify({'ok':True})
-
-@app.route('/history')
-def history():
-    client_name = request.args.get('client','')
-    conn = get_db()
-    if client_name:
-        rows = conn.execute(
-            "SELECT * FROM documents WHERE client_name=? ORDER BY id DESC", (client_name,)
-        ).fetchall()
-    else:
-        rows = conn.execute("SELECT * FROM documents ORDER BY id DESC LIMIT 200").fetchall()
-    conn.close()
-    return jsonify([dict(r) for r in rows])
-
-@app.route('/ledger/<client_name>')
-def ledger(client_name):
-    conn = get_db()
-    rows = conn.execute(
-        "SELECT * FROM documents WHERE client_name=? ORDER BY id ASC", (client_name,)
-    ).fetchall()
-    conn.close()
-    docs = [dict(r) for r in rows]
-
-    total_debit    = 0.0  # חובה — מחשבוניות
-    total_bank     = 0.0  # זכות — תשלום בבנק
-    total_nik      = 0.0  # זכות — ניכוי במקור
-    total_credit   = 0.0  # סה"כ זכות
-
-    entries = []
-    balance = 0.0
-
-    for d in docs:
-        debit  = 0.0
-        credit = 0.0
-
-        if d['doc_type'] in ('חשבונית עסקה', 'חשבונית עסקה + קבלה'):
-            debit = d['inv_amt'] or 0.0
-            total_debit += debit
-
-        if d['doc_type'] in ('קבלה', 'חשבונית עסקה + קבלה'):
-            bank = d['bank_amt'] or 0.0
-            nik  = d['nik_amt']  or 0.0
-            credit = bank + nik
-            total_bank += bank
-            total_nik  += nik
-            total_credit += credit
-
-        balance += debit - credit
-
-        entries.append({
-            **d,
-            'debit':  debit,
-            'credit': credit,
-            'balance': balance,
-        })
-
-    return jsonify({
-        'client':        client_name,
-        'entries':       entries,
-        'total_debit':   total_debit,
-        'total_bank':    total_bank,
-        'total_nik':     total_nik,
-        'total_credit':  total_credit,
-        'balance':       balance,
-    })
-
-@app.route('/client_names')
-def client_names():
-    conn = get_db()
-    rows = conn.execute(
-        "SELECT DISTINCT client_name FROM documents ORDER BY client_name"
-    ).fetchall()
-    conn.close()
-    return jsonify([r['client_name'] for r in rows])
-
-@app.route('/reset_data', methods=['POST'])
-def reset_data():
-    conn = get_db()
-    conn.execute("DELETE FROM documents")
-    conn.execute("UPDATE counters SET next_num=2600166 WHERE doc_type='חשבונית עסקה'")
-    conn.execute("UPDATE counters SET next_num=2601166 WHERE doc_type='קבלה'")
-    conn.execute("UPDATE counters SET next_num=26002166 WHERE doc_type='חשבונית עסקה + קבלה'")
-    conn.commit()
-    conn.close()
-    return jsonify({'ok': True, 'message': 'כל המסמכים אופסו — הלקוחות נשמרו'})
-
-@app.route('/reset_all', methods=['POST'])
-def reset_all():
-    conn = get_db()
-    conn.execute("DELETE FROM documents")
-    conn.execute("DELETE FROM clients")
-    conn.execute("UPDATE counters SET next_num=2600166 WHERE doc_type='חשבונית עסקה'")
-    conn.execute("UPDATE counters SET next_num=2601166 WHERE doc_type='קבלה'")
-    conn.execute("UPDATE counters SET next_num=26002166 WHERE doc_type='חשבונית עסקה + קבלה'")
-    conn.commit()
-    conn.close()
-    return jsonify({'ok': True, 'message': 'כל הנתונים נמחקו כולל לקוחות'})
-
 @app.route('/generate_pdf', methods=['POST'])
 def generate_pdf():
     try:
@@ -531,6 +386,79 @@ def generate_pdf():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+        @app.route('/clients', methods=['GET','POST'])
+def clients():
+    conn = get_db()
+    if request.method == 'GET':
+        rows = conn.execute("SELECT * FROM clients ORDER BY name").fetchall()
+        conn.close()
+        return jsonify([dict(r) for r in rows])
+    else:
+        data = request.json
+        conn.execute("INSERT INTO clients (name,tax_id,address,phone) VALUES (?,?,?,?)",
+            (data.get('name',''), data.get('id',''), data.get('address',''), data.get('phone','')))
+        conn.commit(); conn.close()
+        return jsonify({'ok':True})
+
+@app.route('/history')
+def history():
+    client_name = request.args.get('client','')
+    conn = get_db()
+    if client_name:
+        rows = conn.execute(
+            "SELECT * FROM documents WHERE client_name=? ORDER BY id DESC", (client_name,)
+        ).fetchall()
+    else:
+        rows = conn.execute("SELECT * FROM documents ORDER BY id DESC LIMIT 200").fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
+@app.route('/ledger/<client_name>')
+def ledger(client_name):
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT * FROM documents WHERE client_name=? ORDER BY id ASC", (client_name,)
+    ).fetchall()
+    conn.close()
+    docs = [dict(r) for r in rows]
+
+    total_debit  = 0.0
+    total_bank   = 0.0
+    total_nik    = 0.0
+    total_credit = 0.0
+    entries = []
+    balance = 0.0
+
+    for d in docs:
+        debit  = 0.0
+        credit = 0.0
+        if d['doc_type'] in ('חשבונית עסקה', 'חשבונית עסקה + קבלה'):
+            debit = d['inv_amt'] or 0.0
+            total_debit += debit
+        if d['doc_type'] in ('קבלה', 'חשבונית עסקה + קבלה'):
+            bank = d['bank_amt'] or 0.0
+            nik  = d['nik_amt']  or 0.0
+            credit = bank + nik
+            total_bank += bank
+            total_nik  += nik
+            total_credit += credit
+        balance += debit - credit
+        entries.append({**d, 'debit': debit, 'credit': credit, 'balance': balance})
+
+    return jsonify({
+        'client': client_name, 'entries': entries,
+        'total_debit': total_debit, 'total_bank': total_bank,
+        'total_nik': total_nik, 'total_credit': total_credit, 'balance': balance,
+    })
+
+@app.route('/client_names')
+def client_names():
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT DISTINCT client_name FROM documents ORDER BY client_name"
+    ).fetchall()
+    conn.close()
+    return jsonify([r['client_name'] for r in rows])
 
 @app.route('/document/<int:doc_id>', methods=['GET','PUT','DELETE'])
 def document(doc_id):
@@ -569,7 +497,7 @@ def send_email():
         doc_type  = data.get('doc_type','')
         doc_num   = data.get('doc_num','')
         client    = data.get('client','')
-        fmt       = data.get('format','pdf')  # 'pdf' או 'docx'
+        fmt       = data.get('format','pdf')
 
         if not to_email:
             return jsonify({'error': 'נא להזין כתובת מייל'}), 400
@@ -579,9 +507,7 @@ def send_email():
         if not gmail_user or not gmail_pass:
             return jsonify({'error': 'הגדרות מייל חסרות בשרת'}), 500
 
-        # בנה את המסמך
         if fmt == 'pdf':
-            from pdf_builder import build_pdf
             file_buf  = build_pdf(data)
             filename  = f"{doc_type}_{doc_num}_{client}.pdf"
             mime_type = 'application/pdf'
@@ -592,20 +518,12 @@ def send_email():
             filename  = f"{doc_type}_{doc_num}_{client}.docx"
             mime_type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
-        # בנה מייל
         msg = MIMEMultipart()
         msg['From']    = gmail_user
         msg['To']      = to_email
         msg['Subject'] = f'{doc_type} מספר {doc_num} — יהודה קורץ'
 
-        body = f"""שלום,
-
-מצורף {doc_type} מספר {doc_num}.
-
-בברכה,
-יהודה קורץ
-עוסק פטור מס׳ 027394865
-"""
+        body = f"שלום,\n\nמצורף {doc_type} מספר {doc_num}.\n\nבברכה,\nיהודה קורץ\nעוסק פטור מס׳ 027394865"
         msg.attach(MIMEText(body, 'plain', 'utf-8'))
 
         part = MIMEBase('application', 'octet-stream')
@@ -615,7 +533,6 @@ def send_email():
         part.add_header('Content-Type', mime_type)
         msg.attach(part)
 
-        # שלח
         with smtplib.SMTP('smtp.gmail.com', 587) as server:
             server.ehlo()
             server.starttls()
@@ -626,6 +543,29 @@ def send_email():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/reset_data', methods=['POST'])
+def reset_data():
+    conn = get_db()
+    conn.execute("DELETE FROM documents")
+    conn.execute("UPDATE counters SET next_num=2600166 WHERE doc_type='חשבונית עסקה'")
+    conn.execute("UPDATE counters SET next_num=2601166 WHERE doc_type='קבלה'")
+    conn.execute("UPDATE counters SET next_num=26002166 WHERE doc_type='חשבונית עסקה + קבלה'")
+    conn.commit()
+    conn.close()
+    return jsonify({'ok': True, 'message': 'כל המסמכים אופסו — הלקוחות נשמרו'})
+
+@app.route('/reset_all', methods=['POST'])
+def reset_all():
+    conn = get_db()
+    conn.execute("DELETE FROM documents")
+    conn.execute("DELETE FROM clients")
+    conn.execute("UPDATE counters SET next_num=2600166 WHERE doc_type='חשבונית עסקה'")
+    conn.execute("UPDATE counters SET next_num=2601166 WHERE doc_type='קבלה'")
+    conn.execute("UPDATE counters SET next_num=26002166 WHERE doc_type='חשבונית עסקה + קבלה'")
+    conn.commit()
+    conn.close()
+    return jsonify({'ok': True, 'message': 'כל הנתונים נמחקו כולל לקוחות'})
 
 if __name__ == '__main__':
     app.run(debug=True)
