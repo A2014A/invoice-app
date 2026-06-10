@@ -473,7 +473,19 @@ def reset_data():
     conn.execute("UPDATE counters SET next_num=26002166 WHERE doc_type='חשבונית עסקה + קבלה'")
     conn.commit()
     conn.close()
-    return jsonify({'ok': True, 'message': 'כל הנתונים אופסו'})
+    return jsonify({'ok': True, 'message': 'כל המסמכים אופסו — הלקוחות נשמרו'})
+
+@app.route('/reset_all', methods=['POST'])
+def reset_all():
+    conn = get_db()
+    conn.execute("DELETE FROM documents")
+    conn.execute("DELETE FROM clients")
+    conn.execute("UPDATE counters SET next_num=2600166 WHERE doc_type='חשבונית עסקה'")
+    conn.execute("UPDATE counters SET next_num=2601166 WHERE doc_type='קבלה'")
+    conn.execute("UPDATE counters SET next_num=26002166 WHERE doc_type='חשבונית עסקה + קבלה'")
+    conn.commit()
+    conn.close()
+    return jsonify({'ok': True, 'message': 'כל הנתונים נמחקו כולל לקוחות'})
 
 @app.route('/generate_pdf', methods=['POST'])
 def generate_pdf():
@@ -604,7 +616,9 @@ def send_email():
         msg.attach(part)
 
         # שלח
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+        with smtplib.SMTP('smtp.gmail.com', 587) as server:
+            server.ehlo()
+            server.starttls()
             server.login(gmail_user, gmail_pass)
             server.sendmail(gmail_user, to_email, msg.as_string())
 
