@@ -5,20 +5,21 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 import io, os, datetime, sqlite3
- 
+from pdf_builder import build_pdf
+
 app = Flask(__name__)
- 
+
 OWNER_NAME = "יהודה קורץ"
 OWNER_TAX  = "027394865"
 DB_PATH    = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data.db")
- 
+
 # ===== מסד נתונים =====
- 
+
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
- 
+
 def init_db():
     conn = get_db()
     conn.execute('''CREATE TABLE IF NOT EXISTS clients (
@@ -50,17 +51,17 @@ def init_db():
         conn.execute("INSERT OR IGNORE INTO counters VALUES (?, ?)", (t, n))
     conn.commit()
     conn.close()
- 
+
 init_db()
- 
+
 def next_doc_num(conn, doc_type):
     row = conn.execute("SELECT next_num FROM counters WHERE doc_type=?", (doc_type,)).fetchone()
     num = row["next_num"]
     conn.execute("UPDATE counters SET next_num=? WHERE doc_type=?", (num+1, doc_type))
     return num
- 
+
 # ===== בניית Word =====
- 
+
 def set_cell_bg(cell, hex_color):
     tc = cell._tc
     tcPr = tc.get_or_add_tcPr()
@@ -69,12 +70,12 @@ def set_cell_bg(cell, hex_color):
     shd.set(qn('w:color'), 'auto')
     shd.set(qn('w:fill'), hex_color)
     tcPr.append(shd)
- 
+
 def set_rtl(para):
     pPr = para._p.get_or_add_pPr()
     bidi = OxmlElement('w:bidi')
     pPr.append(bidi)
- 
+
 def make_border(cell, color="CCCCCC"):
     tc = cell._tc
     tcPr = tc.get_or_add_tcPr()
@@ -86,7 +87,7 @@ def make_border(cell, color="CCCCCC"):
         border.set(qn('w:color'), color)
         tcBorders.append(border)
     tcPr.append(tcBorders)
- 
+
 def add_para(cell, text, bold=False, size=11, color=None, align=WD_ALIGN_PARAGRAPH.RIGHT):
     para = cell.paragraphs[0] if cell.paragraphs else cell.add_paragraph()
     para.alignment = align
@@ -98,7 +99,7 @@ def add_para(cell, text, bold=False, size=11, color=None, align=WD_ALIGN_PARAGRA
     if color:
         run.font.color.rgb = RGBColor.from_string(color)
     return para
- 
+
 def build_doc(data):
     doc_type  = data.get('doc_type', '')
     doc_num   = data.get('doc_num', '')
@@ -111,17 +112,17 @@ def build_doc(data):
     bank_amt  = data.get('bank_amt')
     nik_amt   = data.get('nik_amt')
     pct_nik   = data.get('pct_nik', 0.2)
- 
+
     def sf(v):
         try: return float(v) if v else 0.0
         except: return 0.0
- 
+
     inv_amt = sf(inv_amt)
     bank_amt = sf(bank_amt)
     nik_amt  = sf(nik_amt)
     pct_nik  = sf(pct_nik) or 0.2
     rec_total = bank_amt + nik_amt
- 
+
     doc = Document()
     section = doc.sections[0]
     section.page_width  = Cm(21)
@@ -129,9 +130,19 @@ def build_doc(data):
     section.left_margin = section.right_margin = Cm(2)
     section.top_margin  = section.bottom_margin = Cm(2)
     doc.settings.element.append(OxmlElement('w:bidi'))
- 
+
+    # הגדרת RTL לכל המסמך
+    for style_name in ['Normal', 'Table Grid']:
+        try:
+            s = doc.styles[style_name]
+            pPr = s.element.get_or_add_pPr()
+            bidi = OxmlElement('w:bidi')
+            pPr.append(bidi)
+        except: pass
+
     title_color = {'חשבונית עסקה':'2563EB','קבלה':'16A34A'}.get(doc_type,'7C3AED')
- 
+
+    # כותרת
     for txt, sz, bold, col in [
         (doc_type, 26, True, title_color),
         (OWNER_NAME, 18, True, '1E3A5F'),
@@ -143,89 +154,176 @@ def build_doc(data):
         r = p.add_run(txt)
         r.font.name='Arial'; r.font.size=Pt(sz); r.font.bold=bold
         r.font.color.rgb = RGBColor.from_string(col)
- 
+
     doc.add_paragraph()
- 
-    # מספר + תאריך
-    t1 = doc.add_table(rows=1, cols=2); t1.style='Table Grid'
-    c_num = t1.rows[0].cells[0]
-    set_cell_bg(c_num,"EFF6FF"); make_border(c_num,"2563EB")
-    p_num = c_num.paragraphs[0]; p_num.alignment=WD_ALIGN_PARAGRAPH.RIGHT; set_rtl(p_num)
-    rl=p_num.add_run("מספר מסמך:  "); rl.font.name='Arial'; rl.font.size=Pt(12); rl.font.bold=True; rl.font.color.rgb=RGBColor.from_string('2563EB')
-    rn=p_num.add_run(str(doc_num)); rn.font.name='Arial'; rn.font.size=Pt(16); rn.font.bold=True; rn.font.color.rgb=RGBColor.from_string('1E3A5F')
-    c_date=t1.rows[0].cells[1]; set_cell_bg(c_date,"F8FAFC"); make_border(c_date,"CCCCCC")
-    add_para(c_date, f"תאריך: {date_str}", size=12)
- 
+
+    # מספר + תאריך — מספר מימין, תאריך משמאל
+    t1 = doc.add_table(rows=1, cols=2)
+    t1.style = 'Table Grid'
+    t1.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+
+    # תאריך — תא שמאלי
+    c_date = t1.rows[0].cells[0]
+    set_cell_bg(c_date, "F8FAFC")
+    p_date = c_date.paragraphs[0]
+    p_date.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    set_rtl(p_date)
+    rd = p_date.add_run(f"תאריך: {date_str}")
+    rd.font.name='Arial'; rd.font.size=Pt(12)
+
+    # מספר מסמך — תא ימני
+    c_num = t1.rows[0].cells[1]
+    set_cell_bg(c_num, "EFF6FF")
+    make_border(c_num, "2563EB")
+    p_num = c_num.paragraphs[0]
+    p_num.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    set_rtl(p_num)
+    rl = p_num.add_run("מספר מסמך:  ")
+    rl.font.name='Arial'; rl.font.size=Pt(12); rl.font.bold=True
+    rl.font.color.rgb = RGBColor.from_string('2563EB')
+    rn = p_num.add_run(str(doc_num))
+    rn.font.name='Arial'; rn.font.size=Pt(16); rn.font.bold=True
+    rn.font.color.rgb = RGBColor.from_string('1E3A5F')
+
     doc.add_paragraph()
- 
-    # פרטי לקוח
-    t2=doc.add_table(rows=1,cols=1); t2.style='Table Grid'
-    c_cl=t2.rows[0].cells[0]; set_cell_bg(c_cl,"F0FDF4"); make_border(c_cl,"16A34A")
-    add_para(c_cl,"פרטי הלקוח",bold=True,size=12,color='16A34A')
-    c_cl.add_paragraph()
-    t_in=c_cl.add_table(rows=2,cols=2)
-    for ri,ci,txt in [(0,0,f"שם לקוח: {client}"),(0,1,f"מס׳ עוסק: {client_id}"),(1,0,f"כתובת: {address}"),(1,1,f"תיאור: {desc}")]:
-        add_para(t_in.rows[ri].cells[ci], txt, size=11)
- 
+
+    # פרטי לקוח — טבלה פשוטה ללא קווים כפולים
+    t2 = doc.add_table(rows=3, cols=2)
+    t2.style = 'Table Grid'
+
+    # כותרת
+    c_title = t2.rows[0].cells[0]
+    c_title.merge(t2.rows[0].cells[1])
+    set_cell_bg(c_title, "E8F5E9")
+    p_title = c_title.paragraphs[0]
+    p_title.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    set_rtl(p_title)
+    rt = p_title.add_run("פרטי הלקוח")
+    rt.font.name='Arial'; rt.font.size=Pt(12); rt.font.bold=True
+    rt.font.color.rgb = RGBColor.from_string('16A34A')
+
+    # שורה 1: שם לקוח | מס׳ עוסק
+    for ci, (label, val) in enumerate([(f"מס׳ עוסק: {client_id}", f"שם לקוח: {client}")]):
+        pass
+    # שם לקוח מימין
+    c_name = t2.rows[1].cells[1]
+    set_cell_bg(c_name, "F8FAFC")
+    p_name = c_name.paragraphs[0]; p_name.alignment=WD_ALIGN_PARAGRAPH.RIGHT; set_rtl(p_name)
+    r_name = p_name.add_run(f"שם לקוח: {client}")
+    r_name.font.name='Arial'; r_name.font.size=Pt(11)
+
+    # מס׳ עוסק משמאל
+    c_id = t2.rows[1].cells[0]
+    set_cell_bg(c_id, "F8FAFC")
+    p_id = c_id.paragraphs[0]; p_id.alignment=WD_ALIGN_PARAGRAPH.RIGHT; set_rtl(p_id)
+    r_id = p_id.add_run(f"מס׳ עוסק: {client_id}")
+    r_id.font.name='Arial'; r_id.font.size=Pt(11)
+
+    # שורה 2: כתובת | תיאור
+    c_addr = t2.rows[2].cells[1]
+    set_cell_bg(c_addr, "F8FAFC")
+    p_addr = c_addr.paragraphs[0]; p_addr.alignment=WD_ALIGN_PARAGRAPH.RIGHT; set_rtl(p_addr)
+    r_addr = p_addr.add_run(f"כתובת: {address}")
+    r_addr.font.name='Arial'; r_addr.font.size=Pt(11)
+
+    c_desc = t2.rows[2].cells[0]
+    set_cell_bg(c_desc, "F8FAFC")
+    p_desc = c_desc.paragraphs[0]; p_desc.alignment=WD_ALIGN_PARAGRAPH.RIGHT; set_rtl(p_desc)
+    r_desc = p_desc.add_run(f"תיאור: {desc}")
+    r_desc.font.name='Arial'; r_desc.font.size=Pt(11)
+
     doc.add_paragraph()
- 
+
     # חשבונית
     if doc_type in ('חשבונית עסקה','חשבונית עסקה + קבלה'):
-        t3=doc.add_table(rows=2,cols=3); t3.style='Table Grid'
-        for i,h in enumerate(["תיאור השירות / הפריט","כמות","סכום ₪"]):
-            c=t3.rows[0].cells[i]; set_cell_bg(c,"2563EB")
-            p=c.paragraphs[0]; p.alignment=WD_ALIGN_PARAGRAPH.CENTER; set_rtl(p)
-            r=p.add_run(h); r.font.name='Arial'; r.font.size=Pt(11); r.font.bold=True; r.font.color.rgb=RGBColor.from_string('FFFFFF')
-        for i,val in enumerate([desc or "","1",f"{inv_amt:,.2f}"]):
-            c=t3.rows[1].cells[i]; set_cell_bg(c,"EFF6FF")
-            add_para(c,val,size=11,align=WD_ALIGN_PARAGRAPH.CENTER)
+        # כותרת עמודות: סכום | כמות | תיאור (מימין לשמאל)
+        t3 = doc.add_table(rows=2, cols=3)
+        t3.style = 'Table Grid'
+        headers = ["סכום ₪", "כמות", "תיאור השירות / הפריט"]
+        values  = [f"{inv_amt:,.2f}", "1", desc or ""]
+        for i, h in enumerate(headers):
+            c = t3.rows[0].cells[i]
+            set_cell_bg(c, "2563EB")
+            p = c.paragraphs[0]; p.alignment=WD_ALIGN_PARAGRAPH.CENTER; set_rtl(p)
+            r = p.add_run(h)
+            r.font.name='Arial'; r.font.size=Pt(11); r.font.bold=True
+            r.font.color.rgb = RGBColor.from_string('FFFFFF')
+        for i, val in enumerate(values):
+            c = t3.rows[1].cells[i]
+            set_cell_bg(c, "EFF6FF")
+            p = c.paragraphs[0]; p.alignment=WD_ALIGN_PARAGRAPH.RIGHT; set_rtl(p)
+            r = p.add_run(val)
+            r.font.name='Arial'; r.font.size=Pt(11)
+
         doc.add_paragraph()
-        t4=doc.add_table(rows=1,cols=2); t4.style='Table Grid'
-        cl=t4.rows[0].cells[0]; cr=t4.rows[0].cells[1]
-        set_cell_bg(cl,"2563EB"); make_border(cl,"2563EB")
-        pl=cl.paragraphs[0]; pl.alignment=WD_ALIGN_PARAGRAPH.CENTER; set_rtl(pl)
-        rl=pl.add_run('סה"כ לתשלום:'); rl.font.name='Arial'; rl.font.size=Pt(13); rl.font.bold=True; rl.font.color.rgb=RGBColor.from_string('FFFFFF')
-        set_cell_bg(cr,"DBEAFE"); make_border(cr,"2563EB")
-        pr=cr.paragraphs[0]; pr.alignment=WD_ALIGN_PARAGRAPH.CENTER; set_rtl(pr)
-        rr=pr.add_run(f"₪ {inv_amt:,.2f}"); rr.font.name='Arial'; rr.font.size=Pt(14); rr.font.bold=True; rr.font.color.rgb=RGBColor.from_string('1E3A5F')
+
+        # סה"כ — ימין=סכום, שמאל=תווית
+        t4 = doc.add_table(rows=1, cols=2)
+        t4.style = 'Table Grid'
+        cr = t4.rows[0].cells[0]  # שמאל — תווית
+        cl = t4.rows[0].cells[1]  # ימין — סכום
+        set_cell_bg(cr, "2563EB")
+        pr = cr.paragraphs[0]; pr.alignment=WD_ALIGN_PARAGRAPH.CENTER; set_rtl(pr)
+        rr = pr.add_run('סה"כ לתשלום:')
+        rr.font.name='Arial'; rr.font.size=Pt(13); rr.font.bold=True
+        rr.font.color.rgb = RGBColor.from_string('FFFFFF')
+        set_cell_bg(cl, "DBEAFE")
+        pl = cl.paragraphs[0]; pl.alignment=WD_ALIGN_PARAGRAPH.CENTER; set_rtl(pl)
+        rl2 = pl.add_run(f"₪ {inv_amt:,.2f}")
+        rl2.font.name='Arial'; rl2.font.size=Pt(14); rl2.font.bold=True
+        rl2.font.color.rgb = RGBColor.from_string('1E3A5F')
         doc.add_paragraph()
- 
+
     # קבלה
     if doc_type in ('קבלה','חשבונית עסקה + קבלה'):
-        rows_data=[
+        rows_data = [
             ('סה"כ שולם:', f"₪ {rec_total:,.2f}", "F0FDF4","16A34A"),
             ("התקבל בבנק:", f"₪ {bank_amt:,.2f}", "F0FDF4","15803D"),
             (f"ניכוי במקור ({int(pct_nik*100)}%):", f"₪ {nik_amt:,.2f}", "F5F3FF","7C3AED"),
-            ("אמצעי תשלום:","____________","F8FAFC","374151"),
+            ("אמצעי תשלום:", "____________", "F8FAFC","374151"),
         ]
-        t5=doc.add_table(rows=4,cols=2); t5.style='Table Grid'
+        t5 = doc.add_table(rows=4, cols=2)
+        t5.style = 'Table Grid'
         for i,(label,val,bg,col) in enumerate(rows_data):
-            cl=t5.rows[i].cells[0]; cr=t5.rows[i].cells[1]
-            set_cell_bg(cl,bg); set_cell_bg(cr,bg)
-            add_para(cl,label,bold=True,size=11,color=col)
-            add_para(cr,val,bold=True,size=12,color=col,align=WD_ALIGN_PARAGRAPH.CENTER)
+            # ימין — תווית, שמאל — סכום
+            c_label = t5.rows[i].cells[1]
+            c_val   = t5.rows[i].cells[0]
+            set_cell_bg(c_label, bg); set_cell_bg(c_val, bg)
+            p_l = c_label.paragraphs[0]; p_l.alignment=WD_ALIGN_PARAGRAPH.RIGHT; set_rtl(p_l)
+            rl = p_l.add_run(label)
+            rl.font.name='Arial'; rl.font.size=Pt(11); rl.font.bold=True
+            rl.font.color.rgb = RGBColor.from_string(col)
+            p_v = c_val.paragraphs[0]; p_v.alignment=WD_ALIGN_PARAGRAPH.CENTER; set_rtl(p_v)
+            rv = p_v.add_run(val)
+            rv.font.name='Arial'; rv.font.size=Pt(12); rv.font.bold=True
+            rv.font.color.rgb = RGBColor.from_string(col)
         doc.add_paragraph()
- 
-    # הערת עוסק פטור
-    p_note=doc.add_paragraph(); p_note.alignment=WD_ALIGN_PARAGRAPH.CENTER; set_rtl(p_note)
-    rn=p_note.add_run('* עוסק פטור — אינו מחייב במע"מ')
-    rn.font.name='Arial'; rn.font.size=Pt(9); rn.font.italic=True; rn.font.color.rgb=RGBColor.from_string('6B7280')
- 
+
+    # הערה
+    p_note = doc.add_paragraph()
+    p_note.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    set_rtl(p_note)
+    rn = p_note.add_run('* עוסק פטור — אינו מחייב במע"מ')
+    rn.font.name='Arial'; rn.font.size=Pt(9); rn.font.italic=True
+    rn.font.color.rgb = RGBColor.from_string('6B7280')
+
     doc.add_paragraph()
- 
+
     # חתימות
-    t6=doc.add_table(rows=1,cols=2); t6.style='Table Grid'
-    add_para(t6.rows[0].cells[0],"חתימת המוכר: ____________________",size=11)
-    add_para(t6.rows[0].cells[1],"חתימת הלקוח: ____________________",size=11)
- 
+    t6 = doc.add_table(rows=1, cols=2)
+    t6.style = 'Table Grid'
+    # ימין — מוכר, שמאל — לקוח
+    add_para(t6.rows[0].cells[1], "חתימת המוכר: ____________________", size=11)
+    add_para(t6.rows[0].cells[0], "חתימת הלקוח: ____________________", size=11)
+
     return doc
- 
+
 # ===== נתיבים =====
- 
+
 @app.route('/')
 def index():
     return render_template('index.html')
- 
+
 @app.route('/generate', methods=['POST'])
 def generate():
     try:
@@ -233,19 +331,19 @@ def generate():
         doc_type = data.get('doc_type','')
         if doc_type not in ["חשבונית עסקה","קבלה","חשבונית עסקה + קבלה"]:
             return jsonify({'error':'סוג מסמך לא חוקי'}), 400
- 
+
         def sf(v):
             try: return float(v) if v else 0.0
             except: return 0.0
- 
+
         inv_amt  = sf(data.get('inv_amt'))
         bank_amt = sf(data.get('bank_amt'))
         nik_amt  = sf(data.get('nik_amt'))
- 
+
         conn = get_db()
         doc_num = next_doc_num(conn, doc_type)
         data['doc_num'] = doc_num
- 
+
         conn.execute('''INSERT INTO documents
             (doc_type,doc_num,date,client_name,client_id,address,description,inv_amt,bank_amt,nik_amt)
             VALUES (?,?,?,?,?,?,?,?,?,?)''', (
@@ -259,21 +357,21 @@ def generate():
         ))
         conn.commit()
         conn.close()
- 
+
         doc = build_doc(data)
         buf = io.BytesIO()
         doc.save(buf); buf.seek(0)
- 
+
         safe_client = (data.get('client','') or '').replace(' ','_')
         safe_type   = doc_type.replace(' ','_').replace('+','-')
         filename    = f"{safe_type}_{doc_num}_{safe_client}.docx"
- 
+
         return send_file(buf, as_attachment=True, download_name=filename,
             mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
- 
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
- 
+
 @app.route('/clients', methods=['GET','POST'])
 def clients():
     conn = get_db()
@@ -287,7 +385,7 @@ def clients():
             (data.get('name',''), data.get('id',''), data.get('address',''), data.get('phone','')))
         conn.commit(); conn.close()
         return jsonify({'ok':True})
- 
+
 @app.route('/history')
 def history():
     client_name = request.args.get('client','')
@@ -300,7 +398,7 @@ def history():
         rows = conn.execute("SELECT * FROM documents ORDER BY id DESC LIMIT 200").fetchall()
     conn.close()
     return jsonify([dict(r) for r in rows])
- 
+
 @app.route('/ledger/<client_name>')
 def ledger(client_name):
     conn = get_db()
@@ -309,23 +407,23 @@ def ledger(client_name):
     ).fetchall()
     conn.close()
     docs = [dict(r) for r in rows]
- 
+
     total_debit    = 0.0  # חובה — מחשבוניות
     total_bank     = 0.0  # זכות — תשלום בבנק
     total_nik      = 0.0  # זכות — ניכוי במקור
     total_credit   = 0.0  # סה"כ זכות
- 
+
     entries = []
     balance = 0.0
- 
+
     for d in docs:
         debit  = 0.0
         credit = 0.0
- 
+
         if d['doc_type'] in ('חשבונית עסקה', 'חשבונית עסקה + קבלה'):
             debit = d['inv_amt'] or 0.0
             total_debit += debit
- 
+
         if d['doc_type'] in ('קבלה', 'חשבונית עסקה + קבלה'):
             bank = d['bank_amt'] or 0.0
             nik  = d['nik_amt']  or 0.0
@@ -333,16 +431,16 @@ def ledger(client_name):
             total_bank += bank
             total_nik  += nik
             total_credit += credit
- 
+
         balance += debit - credit
- 
+
         entries.append({
             **d,
             'debit':  debit,
             'credit': credit,
             'balance': balance,
         })
- 
+
     return jsonify({
         'client':        client_name,
         'entries':       entries,
@@ -352,7 +450,7 @@ def ledger(client_name):
         'total_credit':  total_credit,
         'balance':       balance,
     })
- 
+
 @app.route('/client_names')
 def client_names():
     conn = get_db()
@@ -361,10 +459,10 @@ def client_names():
     ).fetchall()
     conn.close()
     return jsonify([r['client_name'] for r in rows])
- 
+
 if __name__ == '__main__':
     app.run(debug=True)
- 
+
 @app.route('/reset_data', methods=['POST'])
 def reset_data():
     conn = get_db()
@@ -375,4 +473,77 @@ def reset_data():
     conn.commit()
     conn.close()
     return jsonify({'ok': True, 'message': 'כל הנתונים אופסו'})
- 
+
+@app.route('/generate_pdf', methods=['POST'])
+def generate_pdf():
+    try:
+        data = request.json
+        doc_type = data.get('doc_type','')
+        if doc_type not in ["חשבונית עסקה","קבלה","חשבונית עסקה + קבלה"]:
+            return jsonify({'error':'סוג מסמך לא חוקי'}), 400
+
+        def sf(v):
+            try: return float(v) if v else 0.0
+            except: return 0.0
+
+        inv_amt  = sf(data.get('inv_amt'))
+        bank_amt = sf(data.get('bank_amt'))
+        nik_amt  = sf(data.get('nik_amt'))
+
+        conn = get_db()
+        doc_num = next_doc_num(conn, doc_type)
+        data['doc_num'] = doc_num
+
+        conn.execute('''INSERT INTO documents
+            (doc_type,doc_num,date,client_name,client_id,address,description,inv_amt,bank_amt,nik_amt)
+            VALUES (?,?,?,?,?,?,?,?,?,?)''', (
+            doc_type, doc_num,
+            data.get('date',''),
+            data.get('client',''),
+            data.get('client_id',''),
+            data.get('address',''),
+            data.get('desc',''),
+            inv_amt, bank_amt, nik_amt,
+        ))
+        conn.commit()
+        conn.close()
+
+        buf = build_pdf(data)
+        safe_client = (data.get('client','') or '').replace(' ','_')
+        safe_type   = doc_type.replace(' ','_').replace('+','-')
+        filename    = f"{safe_type}_{doc_num}_{safe_client}.pdf"
+
+        return send_file(buf, as_attachment=True, download_name=filename,
+            mimetype='application/pdf')
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/document/<int:doc_id>', methods=['GET','PUT','DELETE'])
+def document(doc_id):
+    conn = get_db()
+    if request.method == 'GET':
+        row = conn.execute("SELECT * FROM documents WHERE id=?", (doc_id,)).fetchone()
+        conn.close()
+        if not row: return jsonify({'error':'לא נמצא'}), 404
+        return jsonify(dict(row))
+    elif request.method == 'PUT':
+        data = request.json
+        def sf(v):
+            try: return float(v) if v else 0.0
+            except: return 0.0
+        conn.execute('''UPDATE documents SET
+            date=?, client_name=?, client_id=?, address=?, description=?,
+            inv_amt=?, bank_amt=?, nik_amt=?
+            WHERE id=?''', (
+            data.get('date',''), data.get('client',''), data.get('client_id',''),
+            data.get('address',''), data.get('desc',''),
+            sf(data.get('inv_amt')), sf(data.get('bank_amt')), sf(data.get('nik_amt')),
+            doc_id
+        ))
+        conn.commit(); conn.close()
+        return jsonify({'ok': True})
+    elif request.method == 'DELETE':
+        conn.execute("DELETE FROM documents WHERE id=?", (doc_id,))
+        conn.commit(); conn.close()
+        return jsonify({'ok': True})
