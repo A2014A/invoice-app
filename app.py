@@ -223,7 +223,7 @@ def build_doc(data):
     r_id = p_id.add_run(f"מס׳ עוסק: {client_id}")
     r_id.font.name='Arial'; r_id.font.size=Pt(11)
 
-    # שורה 2: כתובת | תיאור
+    # שורה 2: כתובת בלבד
     c_addr = t2.rows[2].cells[1]
     set_cell_bg(c_addr, "F8FAFC")
     p_addr = c_addr.paragraphs[0]; p_addr.alignment=WD_ALIGN_PARAGRAPH.RIGHT; set_rtl(p_addr)
@@ -233,7 +233,7 @@ def build_doc(data):
     c_desc = t2.rows[2].cells[0]
     set_cell_bg(c_desc, "F8FAFC")
     p_desc = c_desc.paragraphs[0]; p_desc.alignment=WD_ALIGN_PARAGRAPH.RIGHT; set_rtl(p_desc)
-    r_desc = p_desc.add_run(f"תיאור: {desc}")
+    r_desc = p_desc.add_run("")
     r_desc.font.name='Arial'; r_desc.font.size=Pt(11)
 
     doc.add_paragraph()
