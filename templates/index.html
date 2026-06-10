@@ -1,830 +1,617 @@
-<!DOCTYPE html>
-<html lang="he" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מערכת חשבוניות — יהודה קורץ</title>
-<link rel="manifest" href="/static/manifest.json">
-<meta name="theme-color" content="#1E3A5F">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="חשבוניות">
-<link rel="apple-touch-icon" href="/static/icon-192.png">
-<style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: Arial, sans-serif; background: #F1F5F9; color: #1E3A5F; direction: rtl; }
-
-header {
-  background: linear-gradient(135deg, #1E3A5F, #2563EB);
-  color: white; padding: 16px 24px; text-align: center;
-}
-header h1 { font-size: 1.5rem; font-weight: 700; }
-header p  { font-size: 0.85rem; opacity: 0.85; margin-top: 3px; }
-
-/* טאבים */
-.tabs { display: flex; background: white; border-bottom: 2px solid #DBEAFE; }
-.tab {
-  flex: 1; padding: 14px 8px; text-align: center; cursor: pointer;
-  font-weight: 600; font-size: 0.9rem; color: #6B7280;
-  border-bottom: 3px solid transparent; margin-bottom: -2px;
-  transition: all 0.2s;
-}
-.tab.active { color: #2563EB; border-bottom-color: #2563EB; background: #EFF6FF; }
-.tab:hover:not(.active) { background: #F8FAFC; color: #374151; }
-
-.tab-content { display: none; }
-.tab-content.active { display: block; }
-
-.container { max-width: 760px; margin: 20px auto; padding: 0 16px; }
-
-.card {
-  background: white; border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
-  padding: 22px; margin-bottom: 18px;
-}
-.card h2 {
-  font-size: 1rem; color: #2563EB;
-  border-bottom: 2px solid #DBEAFE;
-  padding-bottom: 10px; margin-bottom: 16px;
-}
-
-.form-group { margin-bottom: 13px; }
-label { display: block; font-size: 0.82rem; font-weight: 600; color: #374151; margin-bottom: 4px; }
-input, select, textarea {
-  width: 100%; padding: 9px 11px;
-  border: 1.5px solid #D1D5DB; border-radius: 8px;
-  font-size: 0.92rem; font-family: Arial, sans-serif;
-  direction: rtl; background: #FAFAFA; transition: border-color 0.2s;
-}
-input:focus, select:focus { outline: none; border-color: #2563EB; background: white; }
-
-.row { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
-.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 13px; }
-
-.type-selector { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 0; }
-.type-btn {
-  padding: 13px 6px; border: 2px solid #D1D5DB; border-radius: 10px;
-  background: white; cursor: pointer; text-align: center;
-  font-size: 0.78rem; font-weight: 600; transition: all 0.2s; color: #374151;
-}
-.type-btn .icon { font-size: 1.4rem; display: block; margin-bottom: 4px; }
-.type-btn.invoice.active  { border-color: #2563EB; background: #EFF6FF; color: #2563EB; }
-.type-btn.receipt.active  { border-color: #16A34A; background: #F0FDF4; color: #16A34A; }
-.type-btn.combined.active { border-color: #7C3AED; background: #F5F3FF; color: #7C3AED; }
-.type-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-
-.amounts-section { background: #F8FAFC; border-radius: 10px; padding: 16px; }
-.inv-fields { display: none; }
-.rec-fields { display: none; }
-.show-inv .inv-fields { display: block; }
-.show-rec .rec-fields { display: block; }
-
-.section-title { font-size: 0.88rem; font-weight: 700; margin-bottom: 12px; margin-top: 4px; }
-.inv-title { color: #2563EB; }
-.rec-title { color: #16A34A; }
-
-.calc-display {
-  background: #EDE9FE; border: 1px solid #C4B5FD;
-  border-radius: 8px; padding: 9px 13px;
-  font-size: 0.83rem; color: #7C3AED; margin-top: 8px; font-weight: 600;
-}
-
-.btn-generate {
-  width: 100%; padding: 15px;
-  background: linear-gradient(135deg, #2563EB, #1E40AF);
-  color: white; border: none; border-radius: 10px;
-  font-size: 1.05rem; font-weight: 700; cursor: pointer;
-  font-family: Arial, sans-serif; transition: all 0.2s;
-}
-.btn-generate:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37,99,235,0.4); }
-.btn-generate:disabled { background: #9CA3AF; cursor: not-allowed; transform: none; }
-.btn-generate.receipt-btn { background: linear-gradient(135deg, #16A34A, #15803D); }
-.btn-generate.combined-btn { background: linear-gradient(135deg, #7C3AED, #6D28D9); }
-
-.client-select-row { display: flex; gap: 8px; align-items: flex-end; }
-.client-select-row select { flex: 1; }
-.btn-new-client {
-  padding: 9px 13px; background: #EFF6FF;
-  border: 1.5px solid #2563EB; border-radius: 8px;
-  color: #2563EB; font-weight: 600; cursor: pointer;
-  white-space: nowrap; font-size: 0.82rem;
-}
-
-/* מודל */
-.modal {
-  display: none; position: fixed; top: 0; left: 0;
-  width: 100%; height: 100%; background: rgba(0,0,0,0.5);
-  z-index: 1000; justify-content: center; align-items: center;
-}
-.modal.open { display: flex; }
-.modal-box {
-  background: white; border-radius: 16px; padding: 24px;
-  width: 90%; max-width: 460px; direction: rtl;
-}
-.modal-box h3 { color: #2563EB; margin-bottom: 16px; }
-.modal-actions { display: flex; gap: 10px; margin-top: 16px; }
-.btn-save { flex:1; padding:12px; background:#2563EB; color:white; border:none; border-radius:8px; font-size:1rem; font-weight:600; cursor:pointer; }
-.btn-cancel { padding:12px 16px; background:#F3F4F6; border:none; border-radius:8px; cursor:pointer; font-size:1rem; }
-
-/* Toast */
-.toast {
-  position: fixed; bottom: 24px; right: 50%;
-  transform: translateX(50%); background: #1E3A5F;
-  color: white; padding: 12px 24px; border-radius: 50px;
-  font-size: 0.92rem; opacity: 0; transition: opacity 0.3s; z-index: 2000;
-}
-.toast.show { opacity: 1; }
-.toast.success { background: #16A34A; }
-.toast.error   { background: #DC2626; }
-
-.spinner {
-  display: inline-block; width: 16px; height: 16px;
-  border: 3px solid rgba(255,255,255,0.3); border-top-color: white;
-  border-radius: 50%; animation: spin 0.8s linear infinite;
-  vertical-align: middle; margin-right: 8px;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* היסטוריה */
-.filter-bar { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; }
-.filter-bar select, .filter-bar input { flex: 1; }
-.btn-filter {
-  padding: 9px 16px; background: #2563EB; color: white;
-  border: none; border-radius: 8px; cursor: pointer; font-weight: 600; white-space: nowrap;
-}
-
-.history-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-.history-table th {
-  background: #1E3A5F; color: white; padding: 10px 8px;
-  text-align: right; font-weight: 600;
-}
-.history-table td { padding: 9px 8px; border-bottom: 1px solid #E5E7EB; }
-.history-table tr:hover td { background: #F8FAFC; }
-.badge {
-  display: inline-block; padding: 2px 8px; border-radius: 20px;
-  font-size: 0.75rem; font-weight: 600;
-}
-.badge-inv  { background: #DBEAFE; color: #2563EB; }
-.badge-rec  { background: #DCFCE7; color: #16A34A; }
-.badge-both { background: #EDE9FE; color: #7C3AED; }
-.empty-msg { text-align: center; color: #9CA3AF; padding: 40px; font-size: 0.95rem; }
-
-/* כרטסת */
-.ledger-header {
-  background: linear-gradient(135deg, #1E3A5F, #2563EB);
-  color: white; border-radius: 12px; padding: 20px; margin-bottom: 16px;
-}
-.ledger-header h3 { font-size: 1.2rem; margin-bottom: 12px; }
-.ledger-summary { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; }
-.summary-box { background: rgba(255,255,255,0.15); border-radius: 10px; padding: 12px; text-align: center; }
-.summary-box .label { font-size: 0.78rem; opacity: 0.85; margin-bottom: 4px; }
-.summary-box .amount { font-size: 1.2rem; font-weight: 700; }
-.summary-box.balance-box { background: rgba(255,255,255,0.25); }
-
-.ledger-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
-.ledger-table th {
-  background: #374151; color: white; padding: 9px 7px; text-align: right;
-}
-.ledger-table td { padding: 8px 7px; border-bottom: 1px solid #E5E7EB; }
-.ledger-table tr:hover td { background: #F8FAFC; }
-.debit-cell  { color: #DC2626; font-weight: 600; }
-.credit-cell { color: #16A34A; font-weight: 600; }
-.balance-pos { color: #DC2626; font-weight: 700; }
-.balance-neg { color: #16A34A; font-weight: 700; }
-.balance-zero{ color: #6B7280; font-weight: 600; }
-
-.nik-badge { font-size: 0.72rem; background: #EDE9FE; color: #7C3AED; padding: 1px 6px; border-radius: 10px; }
-
-@media (max-width: 520px) {
-  .row { grid-template-columns: 1fr; }
-  .row3 { grid-template-columns: 1fr; }
-  .type-selector { grid-template-columns: 1fr; }
-  .ledger-summary { grid-template-columns: 1fr 1fr; }
-}
-</style>
-</head>
-<body>
-
-<header>
-  <h1>📄 מערכת חשבוניות</h1>
-  <p>יהודה קורץ | עוסק פטור 027394865</p>
-</header>
-
-<div class="tabs">
-  <div class="tab active" onclick="switchTab('new')">📝 הפקת מסמך</div>
-  <div class="tab" onclick="switchTab('history')">📋 היסטוריה</div>
-  <div class="tab" onclick="switchTab('ledger')">📊 כרטסת לקוח</div>
-</div>
-
-<!-- ===== לשונית הפקה ===== -->
-<div id="tab-new" class="tab-content active">
-<div class="container">
-
-  <div class="card">
-    <h2>סוג מסמך</h2>
-    <div class="type-selector">
-      <button class="type-btn invoice active" onclick="setType('חשבונית עסקה',this)">
-        <span class="icon">🧾</span>חשבונית עסקה
-      </button>
-      <button class="type-btn receipt" onclick="setType('קבלה',this)">
-        <span class="icon">💰</span>קבלה
-      </button>
-      <button class="type-btn combined" onclick="setType('חשבונית עסקה + קבלה',this)">
-        <span class="icon">📑</span>חשבונית + קבלה
-      </button>
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>פרטי הלקוח</h2>
-    <div class="form-group">
-      <label>בחר לקוח קיים</label>
-      <div class="client-select-row">
-        <select id="clientSelect" onchange="fillClient()">
-          <option value="">— בחר לקוח —</option>
-        </select>
-        <button class="btn-new-client" onclick="openModal()">+ לקוח חדש</button>
-      </div>
-    </div>
-    <div class="row">
-      <div class="form-group">
-        <label>שם לקוח *</label>
-        <input type="text" id="client" placeholder="שם הלקוח">
-      </div>
-      <div class="form-group">
-        <label>מס׳ עוסק / ח.פ</label>
-        <input type="text" id="client_id" placeholder="123456789">
-      </div>
-    </div>
-    <div class="form-group">
-      <label>כתובת</label>
-      <input type="text" id="address" placeholder="רחוב, עיר">
-    </div>
-    <div class="row">
-      <div class="form-group">
-        <label>תאריך</label>
-        <input type="date" id="date">
-      </div>
-      <div class="form-group">
-        <label>תיאור / הערה</label>
-        <input type="text" id="desc" placeholder="תיאור השירות">
-      </div>
-    </div>
-    <div class="form-group">
-      <label>📧 מייל לקוח <small style="color:#6B7280">(לשליחה ישירה)</small></label>
-      <input type="email" id="client_email" placeholder="example@gmail.com">
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>סכומים</h2>
-    <div class="amounts-section show-inv" id="amountsSection">
-
-      <div class="inv-fields">
-        <div class="section-title inv-title">🧾 חשבונית עסקה — חובה ללקוח</div>
-        <div class="form-group">
-          <label>סכום חשבונית ₪</label>
-          <input type="number" id="inv_amt" placeholder="0.00" step="0.01" min="0">
-        </div>
-      </div>
-
-      <div class="rec-fields">
-        <div class="section-title rec-title" style="margin-top:14px">💰 קבלה — פירעון החוב</div>
-        <div class="form-group">
-          <label>סכום ששולם ₪ <small style="color:#6B7280">(הסכום הכולל שהלקוח היה אמור לשלם)</small></label>
-          <input type="number" id="rec_total_input" placeholder="0.00" step="0.01" min="0" oninput="calcFromTotal()">
-        </div>
-        <div class="row3">
-          <div class="form-group">
-            <label>% ניכוי במקור</label>
-            <input type="number" id="pct_nik" value="20" min="0" max="100" step="1" oninput="calcFromTotal()">
-          </div>
-          <div class="form-group">
-            <label>ניכוי במקור ₪ <small style="color:#7C3AED">(הועבר למס הכנסה)</small></label>
-            <input type="number" id="nik_amt" placeholder="0.00" step="0.01" min="0" readonly style="background:#F5F3FF;font-weight:700;color:#7C3AED;">
-          </div>
-          <div class="form-group">
-            <label>התקבל בבנק ₪</label>
-            <input type="number" id="bank_amt" placeholder="0.00" step="0.01" readonly style="background:#F0FDF4;font-weight:700;color:#16A34A;">
-          </div>
-        </div>
-        <input type="hidden" id="rec_total">
-        <div class="calc-display" id="calcDisplay" style="display:none"></div>
-      </div>
-
-    </div>
-  </div>
-
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-    <button class="btn-generate" id="generateBtn" onclick="generate('docx')">
-      🧾 Word
-    </button>
-    <button class="btn-generate" id="generatePdfBtn" onclick="generate('pdf')" style="background:linear-gradient(135deg,#DC2626,#B91C1C)">
-      📄 PDF
-    </button>
-  </div>
-  <button id="sendEmailBtn" onclick="sendEmail()" style="
-    width:100%;padding:13px;margin-bottom:12px;
-    background:linear-gradient(135deg,#0EA5E9,#0284C7);
-    color:white;border:none;border-radius:10px;
-    font-size:1rem;font-weight:700;cursor:pointer;font-family:Arial,sans-serif;
-    transition:all 0.2s;">
-    📧 שלח במייל
-  </button>
-  <button onclick="confirmReset()" style="width:100%;padding:10px;background:#FEF2F2;color:#DC2626;border:1.5px solid #FCA5A5;border-radius:10px;font-size:0.88rem;font-weight:600;cursor:pointer;">
-    🗑️ איפוס כל הנתונים
-  </button>
-</div>
-</div>
-
-<!-- ===== לשונית היסטוריה ===== -->
-<div id="tab-history" class="tab-content">
-<div class="container">
-  <div class="card">
-    <h2>📋 היסטוריית מסמכים</h2>
-    <div class="filter-bar">
-      <select id="histClientFilter">
-        <option value="">כל הלקוחות</option>
-      </select>
-      <select id="histTypeFilter">
-        <option value="">כל הסוגים</option>
-        <option value="חשבונית עסקה">חשבונית עסקה</option>
-        <option value="קבלה">קבלה</option>
-        <option value="חשבונית עסקה + קבלה">חשבונית + קבלה</option>
-      </select>
-      <button class="btn-filter" onclick="loadHistory()">🔍 סנן</button>
-    </div>
-    <div style="overflow-x:auto">
-      <table class="history-table" id="historyTable">
-        <thead>
-          <tr>
-            <th>מס׳</th><th>תאריך</th><th>סוג</th><th>לקוח</th>
-            <th>חשבונית</th><th>בנק</th><th>ניכוי</th><th>פעולות</th>
-          </tr>
-        </thead>
-        <tbody id="historyBody">
-          <tr><td colspan="7" class="empty-msg">טוען...</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-</div>
-
-<!-- ===== לשונית כרטסת ===== -->
-<div id="tab-ledger" class="tab-content">
-<div class="container">
-  <div class="card">
-    <h2>📊 כרטסת לקוח</h2>
-    <div class="filter-bar">
-      <select id="ledgerClientSelect">
-        <option value="">— בחר לקוח —</option>
-      </select>
-      <button class="btn-filter" onclick="loadLedger()">📊 הצג כרטסת</button>
-    </div>
-  </div>
-
-  <div id="ledgerResult" style="display:none">
-    <div class="ledger-header" id="ledgerHeader"></div>
-    <div class="card" style="padding:0;overflow:hidden">
-      <div style="overflow-x:auto">
-        <table class="ledger-table" id="ledgerTable">
-          <thead>
-            <tr>
-              <th>מס׳</th><th>תאריך</th><th>סוג</th><th>תיאור</th>
-              <th>חובה ₪</th><th>זכות ₪</th><th style="min-width:80px">יתרה ₪</th>
-            </tr>
-          </thead>
-          <tbody id="ledgerBody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</div>
-</div>
-
-<!-- מודל לקוח חדש -->
-<div class="modal" id="clientModal">
-  <div class="modal-box">
-    <h3>➕ הוספת לקוח חדש</h3>
-    <div class="form-group"><label>שם לקוח *</label><input type="text" id="new_client" placeholder="שם הלקוח"></div>
-    <div class="form-group"><label>מס׳ עוסק / ח.פ</label><input type="text" id="new_client_id" placeholder="123456789"></div>
-    <div class="form-group"><label>כתובת</label><input type="text" id="new_address" placeholder="רחוב, עיר"></div>
-    <div class="form-group"><label>טלפון</label><input type="text" id="new_phone" placeholder="050-0000000"></div>
-    <div class="modal-actions">
-      <button class="btn-save" onclick="saveClient()">שמור לקוח</button>
-      <button class="btn-cancel" onclick="closeModal()">ביטול</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script>
-let currentType = 'חשבונית עסקה';
-let clients = [];
-
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('date').value = new Date().toISOString().split('T')[0];
-  loadClients();
-});
-
-// ===== טאבים =====
-function switchTab(name) {
-  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('tab-'+name).classList.add('active');
-  event.target.classList.add('active');
-  if (name === 'history') loadHistory();
-  if (name === 'ledger')  loadLedgerClients();
-}
-
-// ===== סוג מסמך =====
-function setType(type, btn) {
-  currentType = type;
-  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  const section = document.getElementById('amountsSection');
-  const genBtn  = document.getElementById('generateBtn');
-  const pdfBtn  = document.getElementById('generatePdfBtn');
-  section.className = 'amounts-section';
-  if (type === 'חשבונית עסקה') {
-    section.classList.add('show-inv');
-    genBtn.className = 'btn-generate';
-    genBtn.textContent = '🧾 Word';
-    pdfBtn.textContent = '📄 PDF';
-  } else if (type === 'קבלה') {
-    section.classList.add('show-rec');
-    genBtn.className = 'btn-generate receipt-btn';
-    genBtn.textContent = '🧾 Word';
-    pdfBtn.textContent = '📄 PDF';
-  } else {
-    section.classList.add('show-inv','show-rec');
-    genBtn.className = 'btn-generate combined-btn';
-    genBtn.textContent = '🧾 Word';
-    pdfBtn.textContent = '📄 PDF';
-  }
-}
-
-// ===== חישובי ניכוי =====
-function calcFromTotal() {
-  const total = parseFloat(document.getElementById('rec_total_input').value) || 0;
-  const pct   = (parseFloat(document.getElementById('pct_nik').value) || 0) / 100;
-  const nik   = Math.round(total * pct * 100) / 100;
-  const bank  = Math.round((total - nik) * 100) / 100;
-
-  document.getElementById('nik_amt').value  = total > 0 ? nik.toFixed(2)  : '';
-  document.getElementById('bank_amt').value = total > 0 ? bank.toFixed(2) : '';
-  document.getElementById('rec_total').value = total > 0 ? total.toFixed(2) : '';
-
-  const display = document.getElementById('calcDisplay');
-  if (total > 0) {
-    display.style.display = 'block';
-    display.textContent = `סכום כולל: ₪${total.toFixed(2)} | בנק: ₪${bank.toFixed(2)} + ניכוי למס הכנסה: ₪${nik.toFixed(2)}`;
-  } else {
-    display.style.display = 'none';
-  }
-}
-
-// ===== הפקת מסמך =====
-async function generate(format='docx') {
-  const client = document.getElementById('client').value.trim();
-  if (!client) { showToast('נא להזין שם לקוח','error'); return; }
-
-  const btn = format==='pdf' ? document.getElementById('generatePdfBtn') : document.getElementById('generateBtn');
-  const origText = btn.textContent;
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>מייצר...';
-
-  const dateVal = document.getElementById('date').value;
-  const dp = dateVal.split('-');
-  const dateStr = dp.length===3 ? `${dp[2]}/${dp[1]}/${dp[0]}` : dateVal;
-
-  const data = {
-    doc_type:  currentType,
-    date:      dateStr,
-    client:    client,
-    client_id: document.getElementById('client_id').value,
-    address:   document.getElementById('address').value,
-    desc:      document.getElementById('desc').value,
-    inv_amt:   document.getElementById('inv_amt').value || null,
-    bank_amt:  document.getElementById('bank_amt').value || null,
-    nik_amt:   document.getElementById('nik_amt').value || null,
-    pct_nik:   (parseFloat(document.getElementById('pct_nik').value)||20)/100,
-  };
-
-  const endpoint = format==='pdf' ? '/generate_pdf' : '/generate';
-  try {
-    const res = await fetch(endpoint, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) { const e=await res.json(); throw new Error(e.error||'שגיאה'); }
-    const blob = await res.blob();
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    const cd   = res.headers.get('Content-Disposition')||'';
-    const fn   = cd.match(/filename\*?=(?:UTF-8'')?([^;]+)/)?.[1]||`document.${format}`;
-    a.href=url; a.download=decodeURIComponent(fn); a.click();
-    URL.revokeObjectURL(url);
-    showToast('המסמך הופק בהצלחה! ✅','success');
-  } catch(e) {
-    showToast('שגיאה: '+e.message,'error');
-  } finally {
-    btn.disabled=false; btn.textContent=origText;
-  }
-}
-
-// ===== שליחת מייל =====
-async function sendEmail() {
-  const client = document.getElementById('client').value.trim();
-  const email  = document.getElementById('client_email').value.trim();
-  if (!client) { showToast('נא להזין שם לקוח','error'); return; }
-  if (!email)  { showToast('נא להזין כתובת מייל','error'); return; }
-
-  const btn = document.getElementById('sendEmailBtn');
-  const origText = btn.textContent;
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>שולח...';
-
-  const dateVal = document.getElementById('date').value;
-  const dp = dateVal.split('-');
-  const dateStr = dp.length===3 ? `${dp[2]}/${dp[1]}/${dp[0]}` : dateVal;
-
-  const data = {
-    doc_type:   currentType,
-    date:       dateStr,
-    client:     client,
-    client_id:  document.getElementById('client_id').value,
-    address:    document.getElementById('address').value,
-    desc:       document.getElementById('desc').value,
-    inv_amt:    document.getElementById('inv_amt').value || null,
-    bank_amt:   document.getElementById('bank_amt').value || null,
-    nik_amt:    document.getElementById('nik_amt').value || null,
-    pct_nik:    (parseFloat(document.getElementById('pct_nik').value)||20)/100,
-    to_email:   email,
-    format:     'pdf',
-  };
-
-  try {
-    const res = await fetch('/send_email', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(data)
-    });
-    const result = await res.json();
-    if (!res.ok) throw new Error(result.error||'שגיאה');
-    showToast(result.message + ' ✅', 'success');
-  } catch(e) {
-    showToast('שגיאה: '+e.message, 'error');
-  } finally {
-    btn.disabled=false; btn.textContent=origText;
-  }
-}
-function confirmReset() {
-  if (confirm('האם אתה בטוח שברצונך למחוק את כל הנתונים?\nפעולה זו אינה ניתנת לביטול!')) {
-    fetch('/reset_data', {method:'POST'})
-      .then(r=>r.json())
-      .then(d=>{ showToast('כל הנתונים אופסו ✅','success'); loadHistory(); })
-      .catch(e=>showToast('שגיאה באיפוס','error'));
-  }
-}
-
-// ===== לקוחות =====
-async function loadClients() {
-  try {
-    const res = await fetch('/clients');
-    clients = await res.json();
-    const sel = document.getElementById('clientSelect');
-    sel.innerHTML = '<option value="">— בחר לקוח —</option>';
-    clients.forEach((c,i) => {
-      const opt=document.createElement('option');
-      opt.value=i; opt.textContent=c.name; sel.appendChild(opt);
-    });
-  } catch(e){}
-}
-function fillClient() {
-  const idx = document.getElementById('clientSelect').value;
-  if (idx==='') return;
-  const c = clients[idx];
-  document.getElementById('client').value    = c.name    ||'';
-  document.getElementById('client_id').value = c.tax_id  ||'';
-  document.getElementById('address').value   = c.address ||'';
-}
-function openModal()  { document.getElementById('clientModal').classList.add('open'); }
-function closeModal() {
-  document.getElementById('clientModal').classList.remove('open');
-  ['new_client','new_client_id','new_address','new_phone'].forEach(id=>{
-    document.getElementById(id).value='';
-  });
-}
-async function saveClient() {
-  const name = document.getElementById('new_client').value.trim();
-  if (!name) { showToast('נא להזין שם לקוח','error'); return; }
-  const data = {
-    name, id: document.getElementById('new_client_id').value,
-    address: document.getElementById('new_address').value,
-    phone:   document.getElementById('new_phone').value,
-  };
-  try {
-    await fetch('/clients',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
-    await loadClients(); closeModal();
-    showToast('הלקוח נשמר בהצלחה ✅','success');
-  } catch(e) { showToast('שגיאה בשמירה','error'); }
-}
-
-// ===== היסטוריה =====
-function fmt(v) { return v ? '₪'+parseFloat(v).toLocaleString('he-IL',{minimumFractionDigits:2}) : '—'; }
-function badgeType(t) {
-  if (t==='חשבונית עסקה')        return `<span class="badge badge-inv">חשבונית</span>`;
-  if (t==='קבלה')                return `<span class="badge badge-rec">קבלה</span>`;
-  return `<span class="badge badge-both">חשב+קבלה</span>`;
-}
-
-async function loadHistory() {
-  const client = document.getElementById('histClientFilter').value;
-  const type   = document.getElementById('histTypeFilter').value;
-  try {
-    let url = '/history';
-    if (client) url += '?client='+encodeURIComponent(client);
-    const res  = await fetch(url);
-    let docs   = await res.json();
-    if (type) docs = docs.filter(d=>d.doc_type===type);
-
-    // מלא פילטר לקוחות
-    const names = [...new Set(docs.map(d=>d.client_name))].sort();
-    const sel = document.getElementById('histClientFilter');
-    const cur = sel.value;
-    sel.innerHTML = '<option value="">כל הלקוחות</option>';
-    names.forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o); });
-    sel.value = cur;
-
-    const tbody = document.getElementById('historyBody');
-    if (!docs.length) {
-      tbody.innerHTML='<tr><td colspan="7" class="empty-msg">אין מסמכים</td></tr>'; return;
-    }
-    tbody.innerHTML = docs.map(d=>`
-      <tr>
-        <td><strong>${d.doc_num}</strong></td>
-        <td>${d.date}</td>
-        <td>${badgeType(d.doc_type)}</td>
-        <td>${d.client_name}</td>
-        <td class="debit-cell">${d.inv_amt ? fmt(d.inv_amt) : '—'}</td>
-        <td class="credit-cell">${d.bank_amt ? fmt(d.bank_amt) : '—'}</td>
-        <td>${d.nik_amt ? '<span class="nik-badge">ניכוי '+fmt(d.nik_amt)+'</span>' : '—'}</td>
-        <td>
-          <button onclick="editDoc(${d.id})" style="background:#EFF6FF;border:1px solid #2563EB;color:#2563EB;padding:3px 8px;border-radius:6px;cursor:pointer;font-size:0.78rem;margin-left:4px">✏️</button>
-          <button onclick="deleteDoc(${d.id})" style="background:#FEF2F2;border:1px solid #FCA5A5;color:#DC2626;padding:3px 8px;border-radius:6px;cursor:pointer;font-size:0.78rem">🗑️</button>
-        </td>
-      </tr>`).join('');
-  } catch(e) { showToast('שגיאה בטעינה','error'); }
-}
-
-async function deleteDoc(id) {
-  if (!confirm('למחוק מסמך זה?')) return;
-  try {
-    await fetch(`/document/${id}`, {method:'DELETE'});
-    showToast('המסמך נמחק ✅','success');
-    loadHistory();
-  } catch(e) { showToast('שגיאה במחיקה','error'); }
-}
-
-async function editDoc(id) {
-  try {
-    const res = await fetch(`/document/${id}`);
-    const d = await res.json();
-    // מלא את טופס ההפקה עם הנתונים
-    document.getElementById('client').value    = d.client_name || '';
-    document.getElementById('client_id').value = d.client_id   || '';
-    document.getElementById('address').value   = d.address     || '';
-    document.getElementById('desc').value      = d.description || '';
-    document.getElementById('inv_amt').value   = d.inv_amt     || '';
-    document.getElementById('bank_amt').value  = d.bank_amt    || '';
-    document.getElementById('nik_amt').value   = d.nik_amt     || '';
-    // עבור לטאב הפקה
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.getElementById('tab-new').classList.add('active');
-    document.querySelectorAll('.tab')[0].classList.add('active');
-    showToast('הנתונים הועתקו לטופס — ערוך ולחץ הפק','success');
-  } catch(e) { showToast('שגיאה בטעינה','error'); }
-}
-
-// ===== כרטסת =====
-async function loadLedgerClients() {
-  try {
-    const res = await fetch('/client_names');
-    const names = await res.json();
-    const sel = document.getElementById('ledgerClientSelect');
-    sel.innerHTML = '<option value="">— בחר לקוח —</option>';
-    names.forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o); });
-  } catch(e){}
-}
-
-async function loadLedger() {
-  const client = document.getElementById('ledgerClientSelect').value;
-  if (!client) { showToast('בחר לקוח','error'); return; }
-  try {
-    const res  = await fetch('/ledger/'+encodeURIComponent(client));
-    const data = await res.json();
-
-    const bal = data.balance;
-    const balClass = bal>0.01 ? 'balance-pos' : bal<-0.01 ? 'balance-neg' : 'balance-zero';
-    const balLabel = bal>0.01 ? 'יתרה לגבייה' : bal<-0.01 ? 'יתרת זכות' : 'מאוזן';
-
-    document.getElementById('ledgerHeader').innerHTML = `
-      <h3>📊 כרטסת: ${client}</h3>
-      <div class="ledger-summary">
-        <div class="summary-box">
-          <div class="label">סה"כ חובה</div>
-          <div class="amount">₪${data.total_debit.toLocaleString('he-IL',{minimumFractionDigits:2})}</div>
-        </div>
-        <div class="summary-box">
-          <div class="label">התקבל בבנק</div>
-          <div class="amount">₪${data.total_bank.toLocaleString('he-IL',{minimumFractionDigits:2})}</div>
-        </div>
-        <div class="summary-box">
-          <div class="label">ניכוי במקור</div>
-          <div class="amount">₪${data.total_nik.toLocaleString('he-IL',{minimumFractionDigits:2})}</div>
-        </div>
-        <div class="summary-box balance-box">
-          <div class="label">${balLabel}</div>
-          <div class="amount">₪${Math.abs(bal).toLocaleString('he-IL',{minimumFractionDigits:2})}</div>
-        </div>
-      </div>`;
-
-    const tbody = document.getElementById('ledgerBody');
-    if (!data.entries.length) {
-      tbody.innerHTML='<tr><td colspan="7" class="empty-msg">אין תנועות</td></tr>';
-    } else {
-      tbody.innerHTML = data.entries.map(e => {
-        const balVal = e.balance;
-        const bClass = balVal>0.01?'balance-pos':balVal<-0.01?'balance-neg':'balance-zero';
-        const nikNote = e.nik_amt ? `<br><span class="nik-badge">ניכוי ${fmt(e.nik_amt)}</span>` : '';
-        return `<tr>
-          <td><strong>${e.doc_num}</strong></td>
-          <td>${e.date}</td>
-          <td>${badgeType(e.doc_type)}</td>
-          <td>${e.description||'—'}</td>
-          <td class="debit-cell">${e.debit ? fmt(e.debit) : '—'}</td>
-          <td class="credit-cell">${e.credit ? fmt(e.credit)+''+nikNote : '—'}</td>
-          <td class="${bClass}">${fmt(Math.abs(balVal))}</td>
-        </tr>`;
-      }).join('');
-    }
-
-    document.getElementById('ledgerResult').style.display='block';
-  } catch(e) { showToast('שגיאה בטעינה','error'); }
-}
-
-function showToast(msg, type='') {
-  const t = document.getElementById('toast');
-  t.textContent=msg; t.className='toast show'+(type?' '+type:'');
-  setTimeout(()=>t.className='toast',3000);
-}
-
-setType('חשבונית עסקה', document.querySelector('.type-btn.invoice'));
-
-// ===== PWA =====
-let deferredPrompt = null;
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/static/sw.js')
-    .then(() => console.log('SW registered'))
-    .catch(e => console.log('SW error:', e));
-}
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  deferredPrompt = e;
-  document.getElementById('installBanner').style.display = 'flex';
-});
-window.addEventListener('appinstalled', () => {
-  document.getElementById('installBanner').style.display = 'none';
-});
-async function installApp() {
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  const { outcome } = await deferredPrompt.userChoice;
-  if (outcome === 'accepted') document.getElementById('installBanner').style.display = 'none';
-  deferredPrompt = null;
-}
-</script>
-
-<div id="installBanner" style="display:none;position:fixed;bottom:0;left:0;right:0;
-  background:linear-gradient(135deg,#1E3A5F,#2563EB);color:white;padding:14px 20px;
-  z-index:3000;justify-content:space-between;align-items:center;
-  box-shadow:0 -4px 20px rgba(0,0,0,0.2);">
-  <div>
-    <div style="font-weight:700;font-size:0.95rem">📲 התקן כאפליקציה</div>
-    <div style="font-size:0.78rem;opacity:0.85">גישה מהירה מהמסך הראשי</div>
-  </div>
-  <div style="display:flex;gap:10px">
-    <button onclick="installApp()" style="padding:9px 18px;background:white;color:#1E3A5F;
-      border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.88rem;">התקן</button>
-    <button onclick="document.getElementById('installBanner').style.display='none'"
-      style="padding:9px 14px;background:rgba(255,255,255,0.2);border:none;
-      border-radius:8px;color:white;cursor:pointer;font-size:0.88rem;">לא עכשיו</button>
-  </div>
-</div>
-
-</body>
-</html>
+from flask import Flask, render_template, request, send_file, jsonify
+from docx import Document
+from docx.shared import Pt, RGBColor, Cm
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
+import io, os, datetime, sqlite3, smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
+from email import encoders
+from pdf_builder import build_pdf
+
+app = Flask(__name__)
+
+OWNER_NAME = "יהודה קורץ"
+OWNER_TAX  = "027394865"
+DB_PATH    = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data.db")
+
+# ===== מסד נתונים =====
+
+def get_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    conn = get_db()
+    conn.execute('''CREATE TABLE IF NOT EXISTS clients (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        tax_id TEXT,
+        address TEXT,
+        phone TEXT
+    )''')
+    conn.execute('''CREATE TABLE IF NOT EXISTS documents (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        doc_type TEXT NOT NULL,
+        doc_num INTEGER NOT NULL,
+        date TEXT NOT NULL,
+        client_name TEXT NOT NULL,
+        client_id TEXT,
+        address TEXT,
+        description TEXT,
+        inv_amt REAL DEFAULT 0,
+        bank_amt REAL DEFAULT 0,
+        nik_amt REAL DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now','localtime'))
+    )''')
+    conn.execute('''CREATE TABLE IF NOT EXISTS counters (
+        doc_type TEXT PRIMARY KEY,
+        next_num INTEGER NOT NULL
+    )''')
+    for t, n in [("חשבונית עסקה", 2600166), ("קבלה", 2601166), ("חשבונית עסקה + קבלה", 26002166)]:
+        conn.execute("INSERT OR IGNORE INTO counters VALUES (?, ?)", (t, n))
+    conn.commit()
+    conn.close()
+
+init_db()
+
+def next_doc_num(conn, doc_type):
+    row = conn.execute("SELECT next_num FROM counters WHERE doc_type=?", (doc_type,)).fetchone()
+    num = row["next_num"]
+    conn.execute("UPDATE counters SET next_num=? WHERE doc_type=?", (num+1, doc_type))
+    return num
+
+# ===== בניית Word =====
+
+def set_cell_bg(cell, hex_color):
+    tc = cell._tc
+    tcPr = tc.get_or_add_tcPr()
+    shd = OxmlElement('w:shd')
+    shd.set(qn('w:val'), 'clear')
+    shd.set(qn('w:color'), 'auto')
+    shd.set(qn('w:fill'), hex_color)
+    tcPr.append(shd)
+
+def set_rtl(para):
+    pPr = para._p.get_or_add_pPr()
+    bidi = OxmlElement('w:bidi')
+    pPr.append(bidi)
+
+def make_border(cell, color="CCCCCC"):
+    tc = cell._tc
+    tcPr = tc.get_or_add_tcPr()
+    tcBorders = OxmlElement('w:tcBorders')
+    for side in ['top','left','bottom','right']:
+        border = OxmlElement(f'w:{side}')
+        border.set(qn('w:val'), 'single')
+        border.set(qn('w:sz'), '4')
+        border.set(qn('w:color'), color)
+        tcBorders.append(border)
+    tcPr.append(tcBorders)
+
+def add_para(cell, text, bold=False, size=11, color=None, align=WD_ALIGN_PARAGRAPH.RIGHT):
+    para = cell.paragraphs[0] if cell.paragraphs else cell.add_paragraph()
+    para.alignment = align
+    set_rtl(para)
+    run = para.add_run(text)
+    run.font.name = 'Arial'
+    run.font.size = Pt(size)
+    run.font.bold = bold
+    if color:
+        run.font.color.rgb = RGBColor.from_string(color)
+    return para
+
+def build_doc(data):
+    doc_type  = data.get('doc_type', '')
+    doc_num   = data.get('doc_num', '')
+    date_str  = data.get('date', datetime.date.today().strftime('%d/%m/%Y'))
+    client    = data.get('client', '')
+    client_id = data.get('client_id', '')
+    address   = data.get('address', '')
+    desc      = data.get('desc', '')
+    inv_amt   = data.get('inv_amt')
+    bank_amt  = data.get('bank_amt')
+    nik_amt   = data.get('nik_amt')
+    pct_nik   = data.get('pct_nik', 0.2)
+
+    def sf(v):
+        try: return float(v) if v else 0.0
+        except: return 0.0
+
+    inv_amt = sf(inv_amt)
+    bank_amt = sf(bank_amt)
+    nik_amt  = sf(nik_amt)
+    pct_nik  = sf(pct_nik) or 0.2
+    rec_total = bank_amt + nik_amt
+
+    doc = Document()
+    section = doc.sections[0]
+    section.page_width  = Cm(21)
+    section.page_height = Cm(29.7)
+    section.left_margin = section.right_margin = Cm(2)
+    section.top_margin  = section.bottom_margin = Cm(2)
+    doc.settings.element.append(OxmlElement('w:bidi'))
+
+    # הגדרת RTL לכל המסמך
+    for style_name in ['Normal', 'Table Grid']:
+        try:
+            s = doc.styles[style_name]
+            pPr = s.element.get_or_add_pPr()
+            bidi = OxmlElement('w:bidi')
+            pPr.append(bidi)
+        except: pass
+
+    title_color = {'חשבונית עסקה':'2563EB','קבלה':'16A34A'}.get(doc_type,'7C3AED')
+
+    # כותרת
+    for txt, sz, bold, col in [
+        (doc_type, 26, True, title_color),
+        (OWNER_NAME, 18, True, '1E3A5F'),
+        (f"עוסק פטור מס׳ {OWNER_TAX}", 12, False, '374151'),
+    ]:
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        set_rtl(p)
+        r = p.add_run(txt)
+        r.font.name='Arial'; r.font.size=Pt(sz); r.font.bold=bold
+        r.font.color.rgb = RGBColor.from_string(col)
+
+    doc.add_paragraph()
+
+    # מספר + תאריך — מספר מימין, תאריך משמאל
+    t1 = doc.add_table(rows=1, cols=2)
+    t1.style = 'Table Grid'
+    t1.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+
+    # תאריך — תא שמאלי
+    c_date = t1.rows[0].cells[0]
+    set_cell_bg(c_date, "F8FAFC")
+    p_date = c_date.paragraphs[0]
+    p_date.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    set_rtl(p_date)
+    rd = p_date.add_run(f"תאריך: {date_str}")
+    rd.font.name='Arial'; rd.font.size=Pt(12)
+
+    # מספר מסמך — תא ימני
+    c_num = t1.rows[0].cells[1]
+    set_cell_bg(c_num, "EFF6FF")
+    make_border(c_num, "2563EB")
+    p_num = c_num.paragraphs[0]
+    p_num.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    set_rtl(p_num)
+    rl = p_num.add_run("מספר מסמך:  ")
+    rl.font.name='Arial'; rl.font.size=Pt(12); rl.font.bold=True
+    rl.font.color.rgb = RGBColor.from_string('2563EB')
+    rn = p_num.add_run(str(doc_num))
+    rn.font.name='Arial'; rn.font.size=Pt(16); rn.font.bold=True
+    rn.font.color.rgb = RGBColor.from_string('1E3A5F')
+
+    doc.add_paragraph()
+
+    # פרטי לקוח — טבלה פשוטה ללא קווים כפולים
+    t2 = doc.add_table(rows=3, cols=2)
+    t2.style = 'Table Grid'
+
+    # כותרת
+    c_title = t2.rows[0].cells[0]
+    c_title.merge(t2.rows[0].cells[1])
+    set_cell_bg(c_title, "E8F5E9")
+    p_title = c_title.paragraphs[0]
+    p_title.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    set_rtl(p_title)
+    rt = p_title.add_run("פרטי הלקוח")
+    rt.font.name='Arial'; rt.font.size=Pt(12); rt.font.bold=True
+    rt.font.color.rgb = RGBColor.from_string('16A34A')
+
+    # שורה 1: שם לקוח | מס׳ עוסק
+    for ci, (label, val) in enumerate([(f"מס׳ עוסק: {client_id}", f"שם לקוח: {client}")]):
+        pass
+    # שם לקוח מימין
+    c_name = t2.rows[1].cells[1]
+    set_cell_bg(c_name, "F8FAFC")
+    p_name = c_name.paragraphs[0]; p_name.alignment=WD_ALIGN_PARAGRAPH.RIGHT; set_rtl(p_name)
+    r_name = p_name.add_run(f"שם לקוח: {client}")
+    r_name.font.name='Arial'; r_name.font.size=Pt(11)
+
+    # מס׳ עוסק משמאל
+    c_id = t2.rows[1].cells[0]
+    set_cell_bg(c_id, "F8FAFC")
+    p_id = c_id.paragraphs[0]; p_id.alignment=WD_ALIGN_PARAGRAPH.RIGHT; set_rtl(p_id)
+    r_id = p_id.add_run(f"מס׳ עוסק: {client_id}")
+    r_id.font.name='Arial'; r_id.font.size=Pt(11)
+
+    # שורה 2: כתובת | תיאור
+    c_addr = t2.rows[2].cells[1]
+    set_cell_bg(c_addr, "F8FAFC")
+    p_addr = c_addr.paragraphs[0]; p_addr.alignment=WD_ALIGN_PARAGRAPH.RIGHT; set_rtl(p_addr)
+    r_addr = p_addr.add_run(f"כתובת: {address}")
+    r_addr.font.name='Arial'; r_addr.font.size=Pt(11)
+
+    c_desc = t2.rows[2].cells[0]
+    set_cell_bg(c_desc, "F8FAFC")
+    p_desc = c_desc.paragraphs[0]; p_desc.alignment=WD_ALIGN_PARAGRAPH.RIGHT; set_rtl(p_desc)
+    r_desc = p_desc.add_run(f"תיאור: {desc}")
+    r_desc.font.name='Arial'; r_desc.font.size=Pt(11)
+
+    doc.add_paragraph()
+
+    # חשבונית
+    if doc_type in ('חשבונית עסקה','חשבונית עסקה + קבלה'):
+        # כותרת עמודות: סכום | כמות | תיאור (מימין לשמאל)
+        t3 = doc.add_table(rows=2, cols=3)
+        t3.style = 'Table Grid'
+        headers = ["סכום ₪", "כמות", "תיאור השירות / הפריט"]
+        values  = [f"{inv_amt:,.2f}", "1", desc or ""]
+        for i, h in enumerate(headers):
+            c = t3.rows[0].cells[i]
+            set_cell_bg(c, "2563EB")
+            p = c.paragraphs[0]; p.alignment=WD_ALIGN_PARAGRAPH.CENTER; set_rtl(p)
+            r = p.add_run(h)
+            r.font.name='Arial'; r.font.size=Pt(11); r.font.bold=True
+            r.font.color.rgb = RGBColor.from_string('FFFFFF')
+        for i, val in enumerate(values):
+            c = t3.rows[1].cells[i]
+            set_cell_bg(c, "EFF6FF")
+            p = c.paragraphs[0]; p.alignment=WD_ALIGN_PARAGRAPH.RIGHT; set_rtl(p)
+            r = p.add_run(val)
+            r.font.name='Arial'; r.font.size=Pt(11)
+
+        doc.add_paragraph()
+
+        # סה"כ — ימין=סכום, שמאל=תווית
+        t4 = doc.add_table(rows=1, cols=2)
+        t4.style = 'Table Grid'
+        cr = t4.rows[0].cells[0]  # שמאל — תווית
+        cl = t4.rows[0].cells[1]  # ימין — סכום
+        set_cell_bg(cr, "2563EB")
+        pr = cr.paragraphs[0]; pr.alignment=WD_ALIGN_PARAGRAPH.CENTER; set_rtl(pr)
+        rr = pr.add_run('סה"כ לתשלום:')
+        rr.font.name='Arial'; rr.font.size=Pt(13); rr.font.bold=True
+        rr.font.color.rgb = RGBColor.from_string('FFFFFF')
+        set_cell_bg(cl, "DBEAFE")
+        pl = cl.paragraphs[0]; pl.alignment=WD_ALIGN_PARAGRAPH.CENTER; set_rtl(pl)
+        rl2 = pl.add_run(f"₪ {inv_amt:,.2f}")
+        rl2.font.name='Arial'; rl2.font.size=Pt(14); rl2.font.bold=True
+        rl2.font.color.rgb = RGBColor.from_string('1E3A5F')
+        doc.add_paragraph()
+
+    # קבלה
+    if doc_type in ('קבלה','חשבונית עסקה + קבלה'):
+        rows_data = [
+            ('סה"כ שולם:', f"₪ {rec_total:,.2f}", "F0FDF4","16A34A"),
+            ("התקבל בבנק:", f"₪ {bank_amt:,.2f}", "F0FDF4","15803D"),
+            (f"ניכוי במקור ({int(pct_nik*100)}%):", f"₪ {nik_amt:,.2f}", "F5F3FF","7C3AED"),
+            ("אמצעי תשלום:", "____________", "F8FAFC","374151"),
+        ]
+        t5 = doc.add_table(rows=4, cols=2)
+        t5.style = 'Table Grid'
+        for i,(label,val,bg,col) in enumerate(rows_data):
+            # ימין — תווית, שמאל — סכום
+            c_label = t5.rows[i].cells[1]
+            c_val   = t5.rows[i].cells[0]
+            set_cell_bg(c_label, bg); set_cell_bg(c_val, bg)
+            p_l = c_label.paragraphs[0]; p_l.alignment=WD_ALIGN_PARAGRAPH.RIGHT; set_rtl(p_l)
+            rl = p_l.add_run(label)
+            rl.font.name='Arial'; rl.font.size=Pt(11); rl.font.bold=True
+            rl.font.color.rgb = RGBColor.from_string(col)
+            p_v = c_val.paragraphs[0]; p_v.alignment=WD_ALIGN_PARAGRAPH.CENTER; set_rtl(p_v)
+            rv = p_v.add_run(val)
+            rv.font.name='Arial'; rv.font.size=Pt(12); rv.font.bold=True
+            rv.font.color.rgb = RGBColor.from_string(col)
+        doc.add_paragraph()
+
+    # הערה
+    p_note = doc.add_paragraph()
+    p_note.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    set_rtl(p_note)
+    rn = p_note.add_run('* עוסק פטור — אינו מחייב במע"מ')
+    rn.font.name='Arial'; rn.font.size=Pt(9); rn.font.italic=True
+    rn.font.color.rgb = RGBColor.from_string('6B7280')
+
+    doc.add_paragraph()
+
+    # חתימות
+    t6 = doc.add_table(rows=1, cols=2)
+    t6.style = 'Table Grid'
+    # ימין — מוכר, שמאל — לקוח
+    add_para(t6.rows[0].cells[1], "חתימת המוכר: ____________________", size=11)
+    add_para(t6.rows[0].cells[0], "חתימת הלקוח: ____________________", size=11)
+
+    return doc
+
+# ===== נתיבים =====
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/generate', methods=['POST'])
+def generate():
+    try:
+        data = request.json
+        doc_type = data.get('doc_type','')
+        if doc_type not in ["חשבונית עסקה","קבלה","חשבונית עסקה + קבלה"]:
+            return jsonify({'error':'סוג מסמך לא חוקי'}), 400
+
+        def sf(v):
+            try: return float(v) if v else 0.0
+            except: return 0.0
+
+        inv_amt  = sf(data.get('inv_amt'))
+        bank_amt = sf(data.get('bank_amt'))
+        nik_amt  = sf(data.get('nik_amt'))
+
+        conn = get_db()
+        doc_num = next_doc_num(conn, doc_type)
+        data['doc_num'] = doc_num
+
+        conn.execute('''INSERT INTO documents
+            (doc_type,doc_num,date,client_name,client_id,address,description,inv_amt,bank_amt,nik_amt)
+            VALUES (?,?,?,?,?,?,?,?,?,?)''', (
+            doc_type, doc_num,
+            data.get('date',''),
+            data.get('client',''),
+            data.get('client_id',''),
+            data.get('address',''),
+            data.get('desc',''),
+            inv_amt, bank_amt, nik_amt,
+        ))
+        conn.commit()
+        conn.close()
+
+        doc = build_doc(data)
+        buf = io.BytesIO()
+        doc.save(buf); buf.seek(0)
+
+        safe_client = (data.get('client','') or '').replace(' ','_')
+        safe_type   = doc_type.replace(' ','_').replace('+','-')
+        filename    = f"{safe_type}_{doc_num}_{safe_client}.docx"
+
+        return send_file(buf, as_attachment=True, download_name=filename,
+            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/clients', methods=['GET','POST'])
+def clients():
+    conn = get_db()
+    if request.method == 'GET':
+        rows = conn.execute("SELECT * FROM clients ORDER BY name").fetchall()
+        conn.close()
+        return jsonify([dict(r) for r in rows])
+    else:
+        data = request.json
+        conn.execute("INSERT INTO clients (name,tax_id,address,phone) VALUES (?,?,?,?)",
+            (data.get('name',''), data.get('id',''), data.get('address',''), data.get('phone','')))
+        conn.commit(); conn.close()
+        return jsonify({'ok':True})
+
+@app.route('/history')
+def history():
+    client_name = request.args.get('client','')
+    conn = get_db()
+    if client_name:
+        rows = conn.execute(
+            "SELECT * FROM documents WHERE client_name=? ORDER BY id DESC", (client_name,)
+        ).fetchall()
+    else:
+        rows = conn.execute("SELECT * FROM documents ORDER BY id DESC LIMIT 200").fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
+@app.route('/ledger/<client_name>')
+def ledger(client_name):
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT * FROM documents WHERE client_name=? ORDER BY id ASC", (client_name,)
+    ).fetchall()
+    conn.close()
+    docs = [dict(r) for r in rows]
+
+    total_debit    = 0.0  # חובה — מחשבוניות
+    total_bank     = 0.0  # זכות — תשלום בבנק
+    total_nik      = 0.0  # זכות — ניכוי במקור
+    total_credit   = 0.0  # סה"כ זכות
+
+    entries = []
+    balance = 0.0
+
+    for d in docs:
+        debit  = 0.0
+        credit = 0.0
+
+        if d['doc_type'] in ('חשבונית עסקה', 'חשבונית עסקה + קבלה'):
+            debit = d['inv_amt'] or 0.0
+            total_debit += debit
+
+        if d['doc_type'] in ('קבלה', 'חשבונית עסקה + קבלה'):
+            bank = d['bank_amt'] or 0.0
+            nik  = d['nik_amt']  or 0.0
+            credit = bank + nik
+            total_bank += bank
+            total_nik  += nik
+            total_credit += credit
+
+        balance += debit - credit
+
+        entries.append({
+            **d,
+            'debit':  debit,
+            'credit': credit,
+            'balance': balance,
+        })
+
+    return jsonify({
+        'client':        client_name,
+        'entries':       entries,
+        'total_debit':   total_debit,
+        'total_bank':    total_bank,
+        'total_nik':     total_nik,
+        'total_credit':  total_credit,
+        'balance':       balance,
+    })
+
+@app.route('/client_names')
+def client_names():
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT DISTINCT client_name FROM documents ORDER BY client_name"
+    ).fetchall()
+    conn.close()
+    return jsonify([r['client_name'] for r in rows])
+
+@app.route('/reset_data', methods=['POST'])
+def reset_data():
+    conn = get_db()
+    conn.execute("DELETE FROM documents")
+    conn.execute("UPDATE counters SET next_num=2600166 WHERE doc_type='חשבונית עסקה'")
+    conn.execute("UPDATE counters SET next_num=2601166 WHERE doc_type='קבלה'")
+    conn.execute("UPDATE counters SET next_num=26002166 WHERE doc_type='חשבונית עסקה + קבלה'")
+    conn.commit()
+    conn.close()
+    return jsonify({'ok': True, 'message': 'כל הנתונים אופסו'})
+
+@app.route('/generate_pdf', methods=['POST'])
+def generate_pdf():
+    try:
+        data = request.json
+        doc_type = data.get('doc_type','')
+        if doc_type not in ["חשבונית עסקה","קבלה","חשבונית עסקה + קבלה"]:
+            return jsonify({'error':'סוג מסמך לא חוקי'}), 400
+
+        def sf(v):
+            try: return float(v) if v else 0.0
+            except: return 0.0
+
+        inv_amt  = sf(data.get('inv_amt'))
+        bank_amt = sf(data.get('bank_amt'))
+        nik_amt  = sf(data.get('nik_amt'))
+
+        conn = get_db()
+        doc_num = next_doc_num(conn, doc_type)
+        data['doc_num'] = doc_num
+
+        conn.execute('''INSERT INTO documents
+            (doc_type,doc_num,date,client_name,client_id,address,description,inv_amt,bank_amt,nik_amt)
+            VALUES (?,?,?,?,?,?,?,?,?,?)''', (
+            doc_type, doc_num,
+            data.get('date',''),
+            data.get('client',''),
+            data.get('client_id',''),
+            data.get('address',''),
+            data.get('desc',''),
+            inv_amt, bank_amt, nik_amt,
+        ))
+        conn.commit()
+        conn.close()
+
+        buf = build_pdf(data)
+        safe_client = (data.get('client','') or '').replace(' ','_')
+        safe_type   = doc_type.replace(' ','_').replace('+','-')
+        filename    = f"{safe_type}_{doc_num}_{safe_client}.pdf"
+
+        return send_file(buf, as_attachment=True, download_name=filename,
+            mimetype='application/pdf')
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/document/<int:doc_id>', methods=['GET','PUT','DELETE'])
+def document(doc_id):
+    conn = get_db()
+    if request.method == 'GET':
+        row = conn.execute("SELECT * FROM documents WHERE id=?", (doc_id,)).fetchone()
+        conn.close()
+        if not row: return jsonify({'error':'לא נמצא'}), 404
+        return jsonify(dict(row))
+    elif request.method == 'PUT':
+        data = request.json
+        def sf(v):
+            try: return float(v) if v else 0.0
+            except: return 0.0
+        conn.execute('''UPDATE documents SET
+            date=?, client_name=?, client_id=?, address=?, description=?,
+            inv_amt=?, bank_amt=?, nik_amt=?
+            WHERE id=?''', (
+            data.get('date',''), data.get('client',''), data.get('client_id',''),
+            data.get('address',''), data.get('desc',''),
+            sf(data.get('inv_amt')), sf(data.get('bank_amt')), sf(data.get('nik_amt')),
+            doc_id
+        ))
+        conn.commit(); conn.close()
+        return jsonify({'ok': True})
+    elif request.method == 'DELETE':
+        conn.execute("DELETE FROM documents WHERE id=?", (doc_id,))
+        conn.commit(); conn.close()
+        return jsonify({'ok': True})
+
+@app.route('/send_email', methods=['POST'])
+def send_email():
+    try:
+        data = request.json
+        to_email  = data.get('to_email','').strip()
+        doc_type  = data.get('doc_type','')
+        doc_num   = data.get('doc_num','')
+        client    = data.get('client','')
+        fmt       = data.get('format','pdf')  # 'pdf' או 'docx'
+
+        if not to_email:
+            return jsonify({'error': 'נא להזין כתובת מייל'}), 400
+
+        gmail_user = os.environ.get('GMAIL_USER','')
+        gmail_pass = os.environ.get('GMAIL_PASS','')
+        if not gmail_user or not gmail_pass:
+            return jsonify({'error': 'הגדרות מייל חסרות בשרת'}), 500
+
+        # בנה את המסמך
+        if fmt == 'pdf':
+            from pdf_builder import build_pdf
+            file_buf  = build_pdf(data)
+            filename  = f"{doc_type}_{doc_num}_{client}.pdf"
+            mime_type = 'application/pdf'
+        else:
+            doc = build_doc(data)
+            file_buf = io.BytesIO()
+            doc.save(file_buf); file_buf.seek(0)
+            filename  = f"{doc_type}_{doc_num}_{client}.docx"
+            mime_type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+
+        # בנה מייל
+        msg = MIMEMultipart()
+        msg['From']    = gmail_user
+        msg['To']      = to_email
+        msg['Subject'] = f'{doc_type} מספר {doc_num} — יהודה קורץ'
+
+        body = f"""שלום,
+
+מצורף {doc_type} מספר {doc_num}.
+
+בברכה,
+יהודה קורץ
+עוסק פטור מס׳ 027394865
+"""
+        msg.attach(MIMEText(body, 'plain', 'utf-8'))
+
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(file_buf.read())
+        encoders.encode_base64(part)
+        part.add_header('Content-Disposition', f'attachment; filename="{filename}"')
+        part.add_header('Content-Type', mime_type)
+        msg.attach(part)
+
+        # שלח
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(gmail_user, gmail_pass)
+            server.sendmail(gmail_user, to_email, msg.as_string())
+
+        return jsonify({'ok': True, 'message': f'המייל נשלח ל-{to_email}'})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(debug=True)
