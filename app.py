@@ -60,6 +60,7 @@ def next_doc_num(conn, doc_type):
     num = row["next_num"]
     conn.execute("UPDATE counters SET next_num=? WHERE doc_type=?", (num+1, doc_type))
     return num
+    
     def set_cell_bg(cell, hex_color):
     tc = cell._tc
     tcPr = tc.get_or_add_tcPr()
