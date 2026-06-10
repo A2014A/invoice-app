@@ -271,6 +271,10 @@ input:focus, select:focus { outline: none; border-color: #2563EB; background: wh
         <input type="text" id="desc" placeholder="תיאור השירות">
       </div>
     </div>
+    <div class="form-group">
+      <label>📧 מייל לקוח <small style="color:#6B7280">(לשליחה ישירה)</small></label>
+      <input type="email" id="client_email" placeholder="example@gmail.com">
+    </div>
   </div>
 
   <div class="card">
@@ -320,6 +324,14 @@ input:focus, select:focus { outline: none; border-color: #2563EB; background: wh
       📄 PDF
     </button>
   </div>
+  <button id="sendEmailBtn" onclick="sendEmail()" style="
+    width:100%;padding:13px;margin-bottom:12px;
+    background:linear-gradient(135deg,#0EA5E9,#0284C7);
+    color:white;border:none;border-radius:10px;
+    font-size:1rem;font-weight:700;cursor:pointer;font-family:Arial,sans-serif;
+    transition:all 0.2s;">
+    📧 שלח במייל
+  </button>
   <button onclick="confirmReset()" style="width:100%;padding:10px;background:#FEF2F2;color:#DC2626;border:1.5px solid #FCA5A5;border-radius:10px;font-size:0.88rem;font-weight:600;cursor:pointer;">
     🗑️ איפוס כל הנתונים
   </button>
@@ -524,7 +536,51 @@ async function generate(format='docx') {
   }
 }
 
-// ===== איפוס =====
+// ===== שליחת מייל =====
+async function sendEmail() {
+  const client = document.getElementById('client').value.trim();
+  const email  = document.getElementById('client_email').value.trim();
+  if (!client) { showToast('נא להזין שם לקוח','error'); return; }
+  if (!email)  { showToast('נא להזין כתובת מייל','error'); return; }
+
+  const btn = document.getElementById('sendEmailBtn');
+  const origText = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>שולח...';
+
+  const dateVal = document.getElementById('date').value;
+  const dp = dateVal.split('-');
+  const dateStr = dp.length===3 ? `${dp[2]}/${dp[1]}/${dp[0]}` : dateVal;
+
+  const data = {
+    doc_type:   currentType,
+    date:       dateStr,
+    client:     client,
+    client_id:  document.getElementById('client_id').value,
+    address:    document.getElementById('address').value,
+    desc:       document.getElementById('desc').value,
+    inv_amt:    document.getElementById('inv_amt').value || null,
+    bank_amt:   document.getElementById('bank_amt').value || null,
+    nik_amt:    document.getElementById('nik_amt').value || null,
+    pct_nik:    (parseFloat(document.getElementById('pct_nik').value)||20)/100,
+    to_email:   email,
+    format:     'pdf',
+  };
+
+  try {
+    const res = await fetch('/send_email', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(data)
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error||'שגיאה');
+    showToast(result.message + ' ✅', 'success');
+  } catch(e) {
+    showToast('שגיאה: '+e.message, 'error');
+  } finally {
+    btn.disabled=false; btn.textContent=origText;
+  }
+}
 function confirmReset() {
   if (confirm('האם אתה בטוח שברצונך למחוק את כל הנתונים?\nפעולה זו אינה ניתנת לביטול!')) {
     fetch('/reset_data', {method:'POST'})
