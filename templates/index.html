@@ -544,12 +544,11 @@ async function sendEmail() {
   const client = document.getElementById('client').value.trim();
   const email  = document.getElementById('client_email').value.trim();
   if (!client) { showToast('נא להזין שם לקוח','error'); return; }
-  if (!email)  { showToast('נא להזין כתובת מייל','error'); return; }
 
   const btn = document.getElementById('sendEmailBtn');
   const origText = btn.textContent;
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>שולח...';
+  btn.innerHTML = '<span class="spinner"></span>מכין...';
 
   const dateVal = document.getElementById('date').value;
   const dp = dateVal.split('-');
@@ -566,18 +565,32 @@ async function sendEmail() {
     bank_amt:   document.getElementById('bank_amt').value || null,
     nik_amt:    document.getElementById('nik_amt').value || null,
     pct_nik:    (parseFloat(document.getElementById('pct_nik').value)||20)/100,
-    to_email:   email,
     format:     'pdf',
   };
 
   try {
-    const res = await fetch('/send_email', {
+    // הורד את ה-PDF
+    const res = await fetch('/generate_pdf', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify(data)
     });
-    const result = await res.json();
-    if (!res.ok) throw new Error(result.error||'שגיאה');
-    showToast(result.message + ' ✅', 'success');
+    if (!res.ok) { const e=await res.json(); throw new Error(e.error||'שגיאה'); }
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const cd   = res.headers.get('Content-Disposition')||'';
+    const fn   = cd.match(/filename\*?=(?:UTF-8'')?([^;]+)/)?.[1]||'document.pdf';
+    const a    = document.createElement('a');
+    a.href=url; a.download=decodeURIComponent(fn); a.click();
+    URL.revokeObjectURL(url);
+
+    // פתח Gmail עם המייל מוכן
+    const subject = encodeURIComponent(`${currentType} מספר — יהודה קורץ`);
+    const body = encodeURIComponent(`שלום,\n\nמצורף ${currentType}.\n\nבברכה,\nיהודה קורץ\nעוסק פטור מס׳ 027394865`);
+    const to = email ? encodeURIComponent(email) : '';
+    const mailtoUrl = `mailto:${to}?subject=${subject}&body=${body}`;
+    
+    setTimeout(() => window.open(mailtoUrl, '_blank'), 500);
+    showToast('ה-PDF הורד — פתח את המייל והוסף אותו כקובץ מצורף ✅', 'success');
   } catch(e) {
     showToast('שגיאה: '+e.message, 'error');
   } finally {
