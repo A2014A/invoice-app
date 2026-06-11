@@ -325,13 +325,20 @@ input:focus, select:focus { outline: none; border-color: #2563EB; background: wh
     </button>
   </div>
   <button id="sendEmailBtn" onclick="sendEmail()" style="
-    width:100%;padding:13px;margin-bottom:12px;
+    width:100%;padding:13px;margin-bottom:8px;
     background:linear-gradient(135deg,#0EA5E9,#0284C7);
     color:white;border:none;border-radius:10px;
     font-size:1rem;font-weight:700;cursor:pointer;font-family:Arial,sans-serif;
     transition:all 0.2s;">
     📧 שלח במייל
   </button>
+  <a id="openMailBtn" href="#" style="display:none;width:100%;padding:13px;margin-bottom:12px;
+    background:linear-gradient(135deg,#16A34A,#15803D);
+    color:white;border:none;border-radius:10px;
+    font-size:1rem;font-weight:700;cursor:pointer;font-family:Arial,sans-serif;
+    text-align:center;text-decoration:none;box-sizing:border-box;display:none;">
+    📬 פתח מייל לשליחה
+  </a>
   <button onclick="confirmReset()" style="width:100%;padding:10px;margin-bottom:8px;background:#FEF2F2;color:#DC2626;border:1.5px solid #FCA5A5;border-radius:10px;font-size:0.88rem;font-weight:600;cursor:pointer;">
     🗑️ איפוס מסמכים (לקוחות נשמרים)
   </button>
@@ -570,7 +577,6 @@ async function sendEmail() {
   };
 
   try {
-    // הורד את ה-PDF
     const res = await fetch('/generate_pdf', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify(data)
@@ -584,14 +590,17 @@ async function sendEmail() {
     a.href=url; a.download=decodeURIComponent(fn); a.click();
     URL.revokeObjectURL(url);
 
-    // פתח Gmail עם המייל מוכן
-    const subject = encodeURIComponent(`${currentType} מספר — יהודה קורץ`);
+    // הצג כפתור פתח מייל
+    const subject = encodeURIComponent(`${currentType} — יהודה קורץ`);
     const body = encodeURIComponent(`שלום,\n\nמצורף ${currentType}.\n\nבברכה,\nיהודה קורץ\nעוסק פטור מס׳ 027394865`);
     const to = email ? encodeURIComponent(email) : '';
     const mailtoUrl = `mailto:${to}?subject=${subject}&body=${body}`;
-    
-    setTimeout(() => window.open(mailtoUrl, '_blank'), 500);
-    showToast('ה-PDF הורד — פתח את המייל והוסף אותו כקובץ מצורף ✅', 'success');
+
+    const mailBtn = document.getElementById('openMailBtn');
+    mailBtn.href = mailtoUrl;
+    mailBtn.style.display = 'block';
+
+    showToast('ה-PDF הורד! לחץ "פתח מייל" לשליחה ✅', 'success');
   } catch(e) {
     showToast('שגיאה: '+e.message, 'error');
   } finally {
