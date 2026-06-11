@@ -415,6 +415,7 @@ input:focus, select:focus { outline: none; border-color: #2563EB; background: wh
     <div class="form-group"><label>מס׳ עוסק / ח.פ</label><input type="text" id="new_client_id" placeholder="123456789"></div>
     <div class="form-group"><label>כתובת</label><input type="text" id="new_address" placeholder="רחוב, עיר"></div>
     <div class="form-group"><label>טלפון</label><input type="text" id="new_phone" placeholder="050-0000000"></div>
+    <div class="form-group"><label>📧 מייל</label><input type="email" id="new_email" placeholder="example@gmail.com"></div>
     <div class="modal-actions">
       <button class="btn-save" onclick="saveClient()">שמור לקוח</button>
       <button class="btn-cancel" onclick="closeModal()">ביטול</button>
@@ -634,11 +635,12 @@ function fillClient() {
   document.getElementById('client').value    = c.name    ||'';
   document.getElementById('client_id').value = c.tax_id  ||'';
   document.getElementById('address').value   = c.address ||'';
+  document.getElementById('client_email').value = c.email ||'';
 }
 function openModal()  { document.getElementById('clientModal').classList.add('open'); }
 function closeModal() {
   document.getElementById('clientModal').classList.remove('open');
-  ['new_client','new_client_id','new_address','new_phone'].forEach(id=>{
+  ['new_client','new_client_id','new_address','new_phone','new_email'].forEach(id=>{
     document.getElementById(id).value='';
   });
 }
@@ -649,6 +651,7 @@ async function saveClient() {
     name, id: document.getElementById('new_client_id').value,
     address: document.getElementById('new_address').value,
     phone:   document.getElementById('new_phone').value,
+    email:   document.getElementById('new_email').value,
   };
   try {
     await fetch('/clients',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
