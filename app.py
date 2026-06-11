@@ -31,7 +31,8 @@ def init_db():
         name TEXT NOT NULL,
         tax_id TEXT,
         address TEXT,
-        phone TEXT
+        phone TEXT,
+        email TEXT
     )''')
     conn.execute('''CREATE TABLE IF NOT EXISTS documents (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -385,8 +386,8 @@ def clients():
         return jsonify([dict(r) for r in rows])
     else:
         data = request.json
-        conn.execute("INSERT INTO clients (name,tax_id,address,phone) VALUES (?,?,?,?)",
-            (data.get('name',''), data.get('id',''), data.get('address',''), data.get('phone','')))
+        conn.execute("INSERT INTO clients (name,tax_id,address,phone,email) VALUES (?,?,?,?,?)",
+            (data.get('name',''), data.get('id',''), data.get('address',''), data.get('phone',''), data.get('email','')))
         conn.commit(); conn.close()
         return jsonify({'ok':True})
 
