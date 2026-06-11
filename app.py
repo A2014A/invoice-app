@@ -564,24 +564,23 @@ def document(doc_id):
 @app.route('/send_email', methods=['POST'])
 def send_email():
     try:
+        import urllib.request, json as json_lib, base64 as b64
         data = request.json
         to_email  = data.get('to_email','').strip()
         doc_type  = data.get('doc_type','')
         doc_num   = data.get('doc_num','')
         client    = data.get('client','')
-        fmt       = data.get('format','pdf')  # 'pdf' או 'docx'
+        fmt       = data.get('format','pdf')
 
         if not to_email:
             return jsonify({'error': 'נא להזין כתובת מייל'}), 400
 
-        gmail_user = os.environ.get('GMAIL_USER','')
-        gmail_pass = os.environ.get('GMAIL_PASS','')
-        if not gmail_user or not gmail_pass:
+        resend_key = os.environ.get('RESEND_API_KEY','')
+        if not resend_key:
             return jsonify({'error': 'הגדרות מייל חסרות בשרת'}), 500
 
         # בנה את המסמך
         if fmt == 'pdf':
-            from pdf_builder import build_pdf
             file_buf  = build_pdf(data)
             filename  = f"{doc_type}_{doc_num}_{client}.pdf"
             mime_type = 'application/pdf'
@@ -592,35 +591,32 @@ def send_email():
             filename  = f"{doc_type}_{doc_num}_{client}.docx"
             mime_type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
-        # בנה מייל
-        msg = MIMEMultipart()
-        msg['From']    = gmail_user
-        msg['To']      = to_email
-        msg['Subject'] = f'{doc_type} מספר {doc_num} — יהודה קורץ'
+        file_content = b64.b64encode(file_buf.read()).decode()
 
-        body = f"""שלום,
+        body_text = f"שלום,\n\nמצורף {doc_type} מספר {doc_num}.\n\nבברכה,\nיהודה קורץ\nעוסק פטור מס׳ 027394865"
 
-מצורף {doc_type} מספר {doc_num}.
+        payload = {
+            "from": "onboarding@resend.dev",
+            "to": [to_email],
+            "subject": f"{doc_type} מספר {doc_num} — יהודה קורץ",
+            "text": body_text,
+            "attachments": [{
+                "filename": filename,
+                "content": file_content,
+            }]
+        }
 
-בברכה,
-יהודה קורץ
-עוסק פטור מס׳ 027394865
-"""
-        msg.attach(MIMEText(body, 'plain', 'utf-8'))
-
-        part = MIMEBase('application', 'octet-stream')
-        part.set_payload(file_buf.read())
-        encoders.encode_base64(part)
-        part.add_header('Content-Disposition', f'attachment; filename="{filename}"')
-        part.add_header('Content-Type', mime_type)
-        msg.attach(part)
-
-        # שלח
-        with smtplib.SMTP('smtp.gmail.com', 587) as server:
-            server.ehlo()
-            server.starttls()
-            server.login(gmail_user, gmail_pass)
-            server.sendmail(gmail_user, to_email, msg.as_string())
+        req = urllib.request.Request(
+            "https://api.resend.com/emails",
+            data=json_lib.dumps(payload).encode('utf-8'),
+            headers={
+                "Authorization": f"Bearer {resend_key}",
+                "Content-Type": "application/json"
+            },
+            method="POST"
+        )
+        with urllib.request.urlopen(req) as resp:
+            result = json_lib.loads(resp.read())
 
         return jsonify({'ok': True, 'message': f'המייל נשלח ל-{to_email}'})
 
