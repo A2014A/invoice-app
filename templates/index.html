@@ -590,16 +590,19 @@ async function sendEmail() {
     a.href=url; a.download=decodeURIComponent(fn); a.click();
     URL.revokeObjectURL(url);
 
-    // פתח Gmail חלון כתיבה
+    // פתח מייל — mailto בטלפון, Gmail במחשב
     const subject = encodeURIComponent(`${currentType} — יהודה קורץ`);
     const body = encodeURIComponent(`שלום,\n\nמצורף ${currentType}.\n\nבברכה,\nיהודה קורץ\nעוסק פטור מס׳ 027394865`);
     const to = email || '';
-    const gmailUrl = `https://mail.google.com/mail/u/0/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${subject}&body=${body}`;
+    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+    const mailUrl = isMobile
+      ? `mailto:${encodeURIComponent(to)}?subject=${subject}&body=${body}`
+      : `https://mail.google.com/mail/u/0/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${subject}&body=${body}`;
 
     const mailBtn = document.getElementById('openMailBtn');
-    mailBtn.href = gmailUrl;
+    mailBtn.href = mailUrl;
     mailBtn.target = '_blank';
-    mailBtn.style.cssText = 'display:block;width:100%;padding:13px;margin-bottom:12px;background:linear-gradient(135deg,#16A34A,#15803D);color:white;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;font-family:Arial,sans-serif;text-align:center;text-decoration:none;box-sizing:border-box;';
+    mailBtn.style.cssText = 'display:block;width:100%;padding:13px;margin-bottom:12px;background:linear-gradient(135deg,#16A34A,#15803D);color:white;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;font-family:Arial,sans-serif;text-align:center;text-decoration:none;box-sizing:border-box;';
 
     showToast('ה-PDF הורד! לחץ "פתח מייל" לשליחה ✅', 'success');
   } catch(e) {
