@@ -261,15 +261,9 @@ input:focus, select:focus { outline: none; border-color: #2563EB; background: wh
       <label>כתובת</label>
       <input type="text" id="address" placeholder="רחוב, עיר">
     </div>
-    <div class="row">
-      <div class="form-group">
-        <label>תאריך</label>
-        <input type="date" id="date">
-      </div>
-      <div class="form-group">
-        <label>תיאור / הערה</label>
-        <input type="text" id="desc" placeholder="תיאור השירות">
-      </div>
+    <div class="form-group">
+      <label>תאריך</label>
+      <input type="date" id="date">
     </div>
     <div class="form-group">
       <label>📧 מייל לקוח <small style="color:#6B7280">(לשליחה ישירה)</small></label>
@@ -283,6 +277,10 @@ input:focus, select:focus { outline: none; border-color: #2563EB; background: wh
 
       <div class="inv-fields">
         <div class="section-title inv-title">🧾 חשבונית עסקה — חובה ללקוח</div>
+        <div class="form-group">
+          <label>תיאור השירות</label>
+          <input type="text" id="desc" placeholder="תיאור השירות">
+        </div>
         <div class="form-group">
           <label>סכום חשבונית ₪</label>
           <input type="number" id="inv_amt" placeholder="0.00" step="0.01" min="0">
