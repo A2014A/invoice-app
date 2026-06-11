@@ -332,12 +332,19 @@ input:focus, select:focus { outline: none; border-color: #2563EB; background: wh
     transition:all 0.2s;">
     📧 שלח במייל
   </button>
-  <a id="openMailBtn" href="#" target="_blank" style="display:none;width:100%;padding:13px;margin-bottom:12px;
+  <a id="openMailBtn" href="#" target="_blank" style="display:none;width:100%;padding:13px;margin-bottom:8px;
     background:linear-gradient(135deg,#16A34A,#15803D);
     color:white;border-radius:10px;
     font-size:1rem;font-weight:700;cursor:pointer;font-family:Arial,sans-serif;
     text-align:center;text-decoration:none;box-sizing:border-box;">
     📬 פתח Gmail לשליחה
+  </a>
+  <a id="openWhatsappBtn" href="#" target="_blank" style="display:none;width:100%;padding:13px;margin-bottom:12px;
+    background:linear-gradient(135deg,#25D366,#128C7E);
+    color:white;border-radius:10px;
+    font-size:1rem;font-weight:700;cursor:pointer;font-family:Arial,sans-serif;
+    text-align:center;text-decoration:none;box-sizing:border-box;">
+    💬 שלח בוואטסאפ
   </a>
   <button onclick="confirmReset()" style="width:100%;padding:10px;margin-bottom:8px;background:#FEF2F2;color:#DC2626;border:1.5px solid #FCA5A5;border-radius:10px;font-size:0.88rem;font-weight:600;cursor:pointer;">
     🗑️ איפוס מסמכים (לקוחות נשמרים)
@@ -602,9 +609,22 @@ async function sendEmail() {
     const mailBtn = document.getElementById('openMailBtn');
     mailBtn.href = mailUrl;
     mailBtn.target = '_blank';
-    mailBtn.style.cssText = 'display:block;width:100%;padding:13px;margin-bottom:12px;background:linear-gradient(135deg,#16A34A,#15803D);color:white;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;font-family:Arial,sans-serif;text-align:center;text-decoration:none;box-sizing:border-box;';
+    mailBtn.style.cssText = 'display:block;width:100%;padding:13px;margin-bottom:8px;background:linear-gradient(135deg,#16A34A,#15803D);color:white;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;font-family:Arial,sans-serif;text-align:center;text-decoration:none;box-sizing:border-box;';
 
-    showToast('ה-PDF הורד! לחץ "פתח מייל" לשליחה ✅', 'success');
+    // וואטסאפ
+    const invAmt  = document.getElementById('inv_amt').value  || '';
+    const bankAmt = document.getElementById('bank_amt').value || '';
+    const nikAmt  = document.getElementById('nik_amt').value  || '';
+    let waMsg = `שלום,\n\nמצורף ${currentType}`;
+    if (invAmt)  waMsg += `\nסכום: ₪${parseFloat(invAmt).toLocaleString('he-IL')}`;
+    if (bankAmt) waMsg += `\nהתקבל בבנק: ₪${parseFloat(bankAmt).toLocaleString('he-IL')}`;
+    if (nikAmt)  waMsg += `\nניכוי במקור: ₪${parseFloat(nikAmt).toLocaleString('he-IL')}`;
+    waMsg += `\n\nבברכה,\nיהודה קורץ`;
+    const waBtn = document.getElementById('openWhatsappBtn');
+    waBtn.href = `https://wa.me/?text=${encodeURIComponent(waMsg)}`;
+    waBtn.style.cssText = 'display:block;width:100%;padding:13px;margin-bottom:12px;background:linear-gradient(135deg,#25D366,#128C7E);color:white;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;font-family:Arial,sans-serif;text-align:center;text-decoration:none;box-sizing:border-box;';
+
+    showToast('ה-PDF הורד! ✅', 'success');
   } catch(e) {
     showToast('שגיאה: '+e.message, 'error');
   } finally {
