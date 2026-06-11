@@ -590,14 +590,15 @@ async function sendEmail() {
     a.href=url; a.download=decodeURIComponent(fn); a.click();
     URL.revokeObjectURL(url);
 
-    // הצג כפתור פתח מייל
+    // פתח Gmail בדפדפן
     const subject = encodeURIComponent(`${currentType} — יהודה קורץ`);
     const body = encodeURIComponent(`שלום,\n\nמצורף ${currentType}.\n\nבברכה,\nיהודה קורץ\nעוסק פטור מס׳ 027394865`);
     const to = email ? encodeURIComponent(email) : '';
-    const mailtoUrl = `mailto:${to}?subject=${subject}&body=${body}`;
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&to=${to}&su=${subject}&body=${body}`;
 
     const mailBtn = document.getElementById('openMailBtn');
-    mailBtn.href = mailtoUrl;
+    mailBtn.href = gmailUrl;
+    mailBtn.target = '_blank';
     mailBtn.style.display = 'block';
 
     showToast('ה-PDF הורד! לחץ "פתח מייל" לשליחה ✅', 'success');
