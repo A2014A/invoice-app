@@ -5,6 +5,12 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 import io, os, datetime, sqlite3, smtplib
+
+DATABASE_URL = os.environ.get('DATABASE_URL', '')
+USE_PG = bool(DATABASE_URL)
+if USE_PG:
+    import psycopg2
+    import psycopg2.extras
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
@@ -19,23 +25,44 @@ DB_PATH    = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data.db")
 
 # ===== מסד נתונים =====
 
+class PGConn:
+    """עטיפה ל-psycopg2 שמתנהגת כמו sqlite3: execute עם ?, שורות כמו מילון"""
+    def __init__(self):
+        self.conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+
+    def execute(self, sql, params=()):
+        cur = self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(sql.replace('?', '%s'), params)
+        return cur
+
+    def commit(self):
+        self.conn.commit()
+
+    def close(self):
+        self.conn.close()
+
 def get_db():
+    if USE_PG:
+        return PGConn()
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
     conn = get_db()
-    conn.execute('''CREATE TABLE IF NOT EXISTS clients (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+    auto_id = "SERIAL PRIMARY KEY" if USE_PG else "INTEGER PRIMARY KEY AUTOINCREMENT"
+    now_default = ("to_char(timezone('Asia/Jerusalem', now()), 'YYYY-MM-DD HH24:MI:SS')"
+                   if USE_PG else "(datetime('now','localtime'))")
+    conn.execute(f'''CREATE TABLE IF NOT EXISTS clients (
+        id {auto_id},
         name TEXT NOT NULL,
         tax_id TEXT,
         address TEXT,
         phone TEXT,
         email TEXT
     )''')
-    conn.execute('''CREATE TABLE IF NOT EXISTS documents (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+    conn.execute(f'''CREATE TABLE IF NOT EXISTS documents (
+        id {auto_id},
         doc_type TEXT NOT NULL,
         doc_num INTEGER NOT NULL,
         date TEXT NOT NULL,
@@ -46,14 +73,16 @@ def init_db():
         inv_amt REAL DEFAULT 0,
         bank_amt REAL DEFAULT 0,
         nik_amt REAL DEFAULT 0,
-        created_at TEXT DEFAULT (datetime('now','localtime'))
+        created_at TEXT DEFAULT {now_default}
     )''')
     conn.execute('''CREATE TABLE IF NOT EXISTS counters (
         doc_type TEXT PRIMARY KEY,
         next_num INTEGER NOT NULL
     )''')
+    ignore_sql = ("INSERT INTO counters VALUES (?, ?) ON CONFLICT (doc_type) DO NOTHING"
+                  if USE_PG else "INSERT OR IGNORE INTO counters VALUES (?, ?)")
     for t, n in [("חשבונית עסקה", 2600166), ("קבלה", 2601166), ("חשבונית עסקה + קבלה", 26002166)]:
-        conn.execute("INSERT OR IGNORE INTO counters VALUES (?, ?)", (t, n))
+        conn.execute(ignore_sql, (t, n))
     conn.commit()
     conn.close()
 
